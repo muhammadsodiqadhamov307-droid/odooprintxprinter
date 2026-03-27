@@ -1,0 +1,1308 @@
+2026-03-25 01:57:32,530 [INFO] ============================================================
+2026-03-25 01:57:32,530 [INFO] Odoo PoS Print Agent starting...
+2026-03-25 01:57:32,546 [INFO] Mode: usb | Poll interval: 2s
+2026-03-25 01:57:32,546 [INFO] Odoo: http://localhost:8070 (db=default)
+2026-03-25 01:57:32,546 [INFO] ============================================================
+2026-03-25 01:57:32,546 [INFO] Connecting to Odoo at http://localhost:8070 (db=default)...
+2026-03-25 01:57:35,964 [INFO] Authenticated as uid=2
+2026-03-25 01:58:44,665 [INFO] Found 1 pending job(s)
+2026-03-25 01:58:46,945 [INFO] Processing job id=2 name=PRINT-20260325-085842-307639 type=receipt
+2026-03-25 01:58:46,967 [ERROR] Job id=2 FAILED: No backend available
+2026-03-25 02:01:12,785 [WARNING] Network error during XML-RPC call: [WinError 10061] No connection could be made because the target machine actively refused it. Reconnecting...
+2026-03-25 02:01:12,800 [INFO] Connecting to Odoo at http://localhost:8070 (db=default)...
+2026-03-25 02:01:24,021 [INFO] Authenticated as uid=2
+2026-03-25 02:03:38,831 [INFO] ============================================================
+2026-03-25 02:03:38,831 [INFO] Odoo PoS Print Agent starting...
+2026-03-25 02:03:38,832 [INFO] Mode: usb | Poll interval: 2s
+2026-03-25 02:03:38,832 [INFO] Odoo: http://localhost:8070 (db=default)
+2026-03-25 02:03:38,832 [INFO] ============================================================
+2026-03-25 02:03:38,832 [INFO] Connecting to Odoo at http://localhost:8070 (db=default)...
+2026-03-25 02:03:42,192 [INFO] Authenticated as uid=2
+2026-03-25 02:04:04,770 [INFO] Found 1 pending job(s)
+2026-03-25 02:04:06,909 [INFO] Processing job id=3 name=PRINT-20260325-090403-547401 type=receipt
+2026-03-25 02:04:07,007 [INFO] USB printer enabled
+2026-03-25 02:04:09,082 [INFO] Job id=3 printed successfully
+2026-03-25 02:11:31,781 [INFO] Closing Usb connection to printer (8137, 8214)
+2026-03-25 02:12:31,358 [INFO] ============================================================
+2026-03-25 02:12:31,358 [INFO] Odoo PoS Print Agent starting...
+2026-03-25 02:12:31,358 [INFO] Mode: usb | Poll interval: 2s
+2026-03-25 02:12:31,358 [INFO] Odoo: http://localhost:8070 (db=default)
+2026-03-25 02:12:31,358 [INFO] ============================================================
+2026-03-25 02:12:31,358 [INFO] Connecting to Odoo at http://localhost:8070 (db=default)...
+2026-03-25 02:12:34,574 [INFO] Authenticated as uid=2
+2026-03-25 05:11:06,935 [INFO] ============================================================
+2026-03-25 05:11:06,936 [INFO] Odoo PoS Print Agent starting...
+2026-03-25 05:11:06,937 [INFO] Mode: usb | Poll interval: 2s
+2026-03-25 05:11:06,938 [INFO] Odoo: http://localhost:8070 (db=default)
+2026-03-25 05:11:06,938 [INFO] ============================================================
+2026-03-25 05:11:06,938 [INFO] Connecting to Odoo at http://localhost:8070 (db=default)...
+2026-03-25 05:11:13,237 [INFO] Authenticated as uid=2
+2026-03-25 05:12:11,071 [INFO] Found 1 pending job(s)
+2026-03-25 05:12:13,410 [INFO] Processing job id=4 name=PRINT-20260325-121210-873336 type=receipt
+2026-03-25 05:12:13,609 [INFO] USB printer enabled
+2026-03-25 05:12:16,101 [INFO] Job id=4 printed successfully
+2026-03-25 05:16:28,450 [INFO] Closing Usb connection to printer (8137, 8214)
+2026-03-25 05:16:55,970 [INFO] ============================================================
+2026-03-25 05:16:55,972 [INFO] Odoo PoS Print Agent starting...
+2026-03-25 05:16:55,972 [INFO] Mode: usb | Poll interval: 2s
+2026-03-25 05:16:55,972 [INFO] Odoo: http://localhost:8070 (db=default)
+2026-03-25 05:16:55,973 [INFO] ============================================================
+2026-03-25 05:16:55,974 [INFO] Connecting to Odoo at http://localhost:8070 (db=default)...
+2026-03-25 05:17:00,856 [ERROR] Odoo connection error: [WinError 10061] No connection could be made because the target machine actively refused it. Retrying in 10s...
+2026-03-25 05:17:10,857 [INFO] Connecting to Odoo at http://localhost:8070 (db=default)...
+2026-03-25 05:17:14,791 [INFO] Authenticated as uid=2
+2026-03-25 05:19:07,000 [INFO] Found 1 pending job(s)
+2026-03-25 05:19:09,088 [INFO] Processing job id=5 name=PRINT-20260325-121905-573867 type=receipt
+2026-03-25 05:19:09,173 [INFO] USB printer enabled
+2026-03-25 05:19:11,851 [INFO] Job id=5 printed successfully
+2026-03-25 05:24:51,581 [INFO] Shutting down (KeyboardInterrupt)
+2026-03-25 05:24:51,581 [INFO] Closing Usb connection to printer (8137, 8214)
+2026-03-25 05:25:38,791 [INFO] ============================================================
+2026-03-25 05:25:38,791 [INFO] Odoo PoS Print Agent starting...
+2026-03-25 05:25:38,791 [INFO] Mode: usb | Poll interval: 2s
+2026-03-25 05:25:38,791 [INFO] Odoo: http://localhost:8070 (db=default)
+2026-03-25 05:25:38,791 [INFO] ============================================================
+2026-03-25 05:25:38,791 [INFO] Connecting to Odoo at http://localhost:8070 (db=default)...
+2026-03-25 05:25:42,175 [INFO] Authenticated as uid=2
+2026-03-25 05:26:55,160 [INFO] Found 1 pending job(s)
+2026-03-25 05:26:57,231 [INFO] Processing job id=6 name=PRINT-20260325-122652-206162 type=receipt
+2026-03-25 05:26:57,327 [INFO] USB printer enabled
+2026-03-25 05:26:59,423 [INFO] Job id=6 printed successfully
+2026-03-25 05:34:51,158 [INFO] Shutting down (KeyboardInterrupt)
+2026-03-25 05:34:52,133 [INFO] Closing Usb connection to printer (8137, 8214)
+2026-03-25 05:35:10,024 [INFO] ============================================================
+2026-03-25 05:35:10,024 [INFO] Odoo PoS Print Agent starting...
+2026-03-25 05:35:10,024 [INFO] Mode: usb | Poll interval: 0.5s
+2026-03-25 05:35:10,024 [INFO] Odoo: http://localhost:8070 (db=default)
+2026-03-25 05:35:10,024 [INFO] ============================================================
+2026-03-25 05:35:10,024 [INFO] Connecting to Odoo at http://localhost:8070 (db=default)...
+2026-03-25 05:35:13,346 [INFO] Authenticated as uid=2
+2026-03-25 05:37:28,250 [INFO] Found 1 pending job(s)
+2026-03-25 05:37:30,502 [INFO] Processing job id=7 name=PRINT-20260325-123727-762561 type=receipt
+2026-03-25 05:37:30,533 [INFO] USB printer enabled
+2026-03-25 05:37:32,642 [INFO] Job id=7 printed successfully
+2026-03-25 05:42:32,689 [INFO] Found 1 pending job(s)
+2026-03-25 05:42:34,868 [INFO] Processing job id=8 name=PRINT-20260325-124232-416181 type=receipt
+2026-03-25 05:42:34,888 [ERROR] Job id=8 FAILED: Device not found (Unable to open USB printer on (8137, 8214):
+[Errno 13] Access denied (insufficient permissions))
+2026-03-25 05:45:23,598 [INFO] Shutting down (KeyboardInterrupt)
+2026-03-25 05:45:23,598 [INFO] Closing Usb connection to printer (8137, 8214)
+2026-03-25 05:45:49,548 [INFO] ============================================================
+2026-03-25 05:45:49,548 [INFO] Odoo PoS Print Agent starting...
+2026-03-25 05:45:49,548 [INFO] Mode: usb | Poll interval: 0.5s
+2026-03-25 05:45:49,548 [INFO] Odoo: http://localhost:8070 (db=default)
+2026-03-25 05:45:49,548 [INFO] ============================================================
+2026-03-25 05:45:49,548 [INFO] Connecting to Odoo at http://localhost:8070 (db=default)...
+2026-03-25 05:45:52,805 [INFO] Authenticated as uid=2
+2026-03-25 05:46:50,539 [INFO] Found 1 pending job(s)
+2026-03-25 05:46:52,609 [INFO] Processing job id=9 name=PRINT-20260325-124648-326913 type=receipt
+2026-03-25 05:46:52,643 [INFO] USB printer enabled
+2026-03-25 05:46:54,753 [INFO] Job id=9 printed successfully
+2026-03-25 05:54:56,401 [INFO] Shutting down (KeyboardInterrupt)
+2026-03-25 05:54:56,432 [INFO] Closing Usb connection to printer (8137, 8214)
+2026-03-25 06:01:00,295 [INFO] ============================================================
+2026-03-25 06:01:00,295 [INFO] Odoo PoS Print Agent starting...
+2026-03-25 06:01:00,295 [INFO] Mode: network | Poll interval: 0.5s
+2026-03-25 06:01:00,295 [INFO] Odoo: http://localhost:8070 (db=default)
+2026-03-25 06:01:00,295 [INFO] ============================================================
+2026-03-25 06:01:00,295 [INFO] Connecting to Odoo at http://localhost:8070 (db=default)...
+2026-03-25 06:01:03,504 [INFO] Authenticated as uid=2
+2026-03-25 06:01:43,119 [INFO] Found 1 pending job(s)
+2026-03-25 06:01:45,205 [INFO] Processing job id=10 name=PRINT-20260325-130141-372212 type=receipt
+2026-03-25 06:01:50,212 [ERROR] Job id=10 FAILED: Device not found (Could not open socket for 192.168.123.100:
+timed out)
+2026-03-25 06:12:27,284 [INFO] ============================================================
+2026-03-25 06:12:27,284 [INFO] Odoo PoS Print Agent starting...
+2026-03-25 06:12:27,284 [INFO] Mode: usb | Poll interval: 0.2s
+2026-03-25 06:12:27,284 [INFO] Odoo: http://localhost:8070 (db=default)
+2026-03-25 06:12:27,284 [INFO] ============================================================
+2026-03-25 06:12:27,284 [INFO] Connecting to Odoo at http://localhost:8070 (db=default)...
+2026-03-25 06:12:30,547 [INFO] Authenticated as uid=2
+2026-03-25 06:13:01,571 [INFO] Found 1 pending job(s)
+2026-03-25 06:13:03,659 [INFO] Processing job id=11 name=PRINT-20260325-131301-387640 type=receipt
+2026-03-25 06:13:03,690 [INFO] USB printer enabled
+2026-03-25 06:13:05,825 [INFO] Job id=11 printed successfully
+2026-03-25 06:13:54,186 [INFO] Found 1 pending job(s)
+2026-03-25 06:13:56,289 [INFO] Processing job id=12 name=PRINT-20260325-131353-084021 type=receipt
+2026-03-25 06:13:58,366 [INFO] Job id=12 printed successfully
+2026-03-25 06:16:09,036 [INFO] Shutting down (KeyboardInterrupt)
+2026-03-25 06:16:09,042 [INFO] Closing Usb connection to printer (8137, 8214)
+2026-03-25 06:16:11,261 [INFO] ============================================================
+2026-03-25 06:16:11,261 [INFO] Odoo PoS Print Agent starting...
+2026-03-25 06:16:11,261 [INFO] Mode: usb | Poll interval: 0.2s
+2026-03-25 06:16:11,261 [INFO] Odoo: http://localhost:8070 (db=default)
+2026-03-25 06:16:11,261 [INFO] ============================================================
+2026-03-25 06:16:11,277 [INFO] Connecting to Odoo at http://localhost:8070 (db=default)...
+2026-03-25 06:16:14,474 [INFO] Authenticated as uid=2
+2026-03-25 06:16:32,553 [INFO] Found 1 pending job(s)
+2026-03-25 06:16:34,650 [INFO] Processing job id=13 name=PRINT-20260325-131631-790333 type=receipt
+2026-03-25 06:16:34,681 [INFO] USB printer enabled
+2026-03-25 06:16:36,801 [INFO] Job id=13 printed successfully
+2026-03-25 06:18:44,639 [INFO] Shutting down (KeyboardInterrupt)
+2026-03-25 06:18:44,651 [INFO] Closing Usb connection to printer (8137, 8214)
+2026-03-25 06:18:48,965 [INFO] ============================================================
+2026-03-25 06:18:48,965 [INFO] Odoo PoS Print Agent starting...
+2026-03-25 06:18:48,965 [INFO] Mode: usb | Poll interval: 0.2s
+2026-03-25 06:18:48,965 [INFO] Odoo: http://localhost:8070 (db=default)
+2026-03-25 06:18:48,965 [INFO] ============================================================
+2026-03-25 06:18:48,965 [INFO] Connecting to Odoo at http://localhost:8070 (db=default)...
+2026-03-25 06:18:52,321 [INFO] Authenticated as uid=2
+2026-03-25 06:19:07,013 [INFO] Found 1 pending job(s)
+2026-03-25 06:19:09,103 [INFO] Processing job id=14 name=PRINT-20260325-131906-003954 type=receipt
+2026-03-25 06:19:09,134 [INFO] USB printer enabled
+2026-03-25 06:19:11,238 [INFO] Job id=14 printed successfully
+2026-03-25 06:24:12,838 [INFO] Found 1 pending job(s)
+2026-03-25 06:24:14,941 [INFO] Processing job id=15 name=PRINT-20260325-132412-283071 type=receipt
+2026-03-25 06:24:17,107 [INFO] Job id=15 printed successfully
+2026-03-25 06:33:18,411 [INFO] Shutting down (KeyboardInterrupt)
+2026-03-25 06:33:18,426 [INFO] Closing Usb connection to printer (8137, 8214)
+2026-03-25 06:33:28,632 [INFO] ============================================================
+2026-03-25 06:33:28,632 [INFO] Odoo PoS Print Agent starting...
+2026-03-25 06:33:28,632 [INFO] Mode: usb | Poll interval: 0.2s
+2026-03-25 06:33:28,632 [INFO] Odoo: http://localhost:8070 (db=default)
+2026-03-25 06:33:28,644 [INFO] ============================================================
+2026-03-25 06:33:28,644 [INFO] Connecting to Odoo at http://localhost:8070 (db=default)...
+2026-03-25 06:33:31,852 [INFO] Authenticated as uid=2
+2026-03-25 06:33:31,868 [INFO] HTTP push server listening on http://127.0.0.1:8899/print
+2026-03-25 06:34:04,044 [INFO] USB printer enabled
+2026-03-25 06:36:48,609 [INFO] Shutting down (KeyboardInterrupt)
+2026-03-25 06:37:12,488 [INFO] ============================================================
+2026-03-25 06:37:12,488 [INFO] Odoo PoS Print Agent starting...
+2026-03-25 06:37:12,488 [INFO] Mode: usb | Poll interval: 0.2s
+2026-03-25 06:37:12,488 [INFO] Odoo: http://localhost:8070 (db=default)
+2026-03-25 06:37:12,488 [INFO] ============================================================
+2026-03-25 06:37:12,488 [INFO] Connecting to Odoo at http://localhost:8070 (db=default)...
+2026-03-25 06:37:15,819 [INFO] Authenticated as uid=2
+2026-03-25 06:37:15,825 [INFO] HTTP push server listening on http://127.0.0.1:8899/print
+2026-03-25 06:40:21,093 [INFO] USB printer enabled
+2026-03-25 06:41:54,828 [WARNING] Network error during XML-RPC call: [WinError 10061] No connection could be made because the target machine actively refused it. Reconnecting...
+2026-03-25 06:41:54,828 [INFO] Connecting to Odoo at http://localhost:8070 (db=default)...
+2026-03-25 06:42:01,725 [INFO] Authenticated as uid=2
+2026-03-25 06:44:20,364 [WARNING] Network error during XML-RPC call: [WinError 10061] No connection could be made because the target machine actively refused it. Reconnecting...
+2026-03-25 06:44:20,364 [INFO] Connecting to Odoo at http://localhost:8070 (db=default)...
+2026-03-25 06:44:24,952 [INFO] Authenticated as uid=2
+2026-03-25 07:30:20,306 [WARNING] Network error during XML-RPC call: [WinError 10061] No connection could be made because the target machine actively refused it. Reconnecting...
+2026-03-25 07:30:20,306 [INFO] Connecting to Odoo at http://localhost:8070 (db=default)...
+2026-03-25 07:30:28,828 [INFO] Authenticated as uid=2
+2026-03-25 08:19:28,575 [INFO] ============================================================
+2026-03-25 08:19:28,575 [INFO] Odoo PoS Print Agent starting...
+2026-03-25 08:19:28,575 [INFO] Mode: usb | Poll interval: 0.2s
+2026-03-25 08:19:28,575 [INFO] Odoo: http://localhost:8070 (db=default)
+2026-03-25 08:19:28,575 [INFO] ============================================================
+2026-03-25 08:19:28,575 [INFO] Connecting to Odoo at http://localhost:8070 (db=default)...
+2026-03-25 08:19:32,077 [INFO] Authenticated as uid=2
+2026-03-25 08:19:32,093 [INFO] HTTP push server listening on http://127.0.0.1:8899/print
+2026-03-25 08:21:02,363 [INFO] USB printer enabled
+2026-03-25 08:27:06,379 [INFO] Shutting down (KeyboardInterrupt)
+2026-03-25 08:27:10,219 [INFO] ============================================================
+2026-03-25 08:27:10,219 [INFO] Odoo PoS Print Agent starting...
+2026-03-25 08:27:10,219 [INFO] Mode: usb | Poll interval: 0.2s
+2026-03-25 08:27:10,219 [INFO] Odoo: http://localhost:8070 (db=default)
+2026-03-25 08:27:10,219 [INFO] ============================================================
+2026-03-25 08:27:10,219 [INFO] Connecting to Odoo at http://localhost:8070 (db=default)...
+2026-03-25 08:27:13,571 [INFO] Authenticated as uid=2
+2026-03-25 08:27:13,581 [INFO] HTTP push server listening on http://127.0.0.1:8899/print
+2026-03-25 08:27:24,885 [INFO] Shutting down (KeyboardInterrupt)
+2026-03-25 08:27:50,274 [INFO] ============================================================
+2026-03-25 08:27:50,278 [INFO] Odoo PoS Print Agent starting...
+2026-03-25 08:27:50,278 [INFO] Mode: usb | Poll interval: 0.2s
+2026-03-25 08:27:50,295 [INFO] Odoo: http://localhost:8070 (db=default)
+2026-03-25 08:27:50,297 [INFO] ============================================================
+2026-03-25 08:27:50,311 [INFO] Connecting to Odoo at http://localhost:8070 (db=default)...
+2026-03-25 08:27:53,733 [INFO] Authenticated as uid=2
+2026-03-25 08:27:53,739 [INFO] HTTP push server listening on http://127.0.0.1:8899/print
+2026-03-25 08:28:39,144 [INFO] Routing printer "None" to USB VID=0x1FC9 PID=0x2016
+2026-03-25 08:28:39,258 [INFO] USB printer enabled
+2026-03-25 08:41:48,842 [INFO] Shutting down (KeyboardInterrupt)
+2026-03-25 08:41:53,866 [INFO] ============================================================
+2026-03-25 08:41:53,866 [INFO] Odoo PoS Print Agent starting...
+2026-03-25 08:41:53,866 [INFO] Mode: usb | Poll interval: 0.2s
+2026-03-25 08:41:53,866 [INFO] Odoo: http://localhost:8070 (db=default)
+2026-03-25 08:41:53,866 [INFO] ============================================================
+2026-03-25 08:41:53,866 [INFO] Connecting to Odoo at http://localhost:8070 (db=default)...
+2026-03-25 08:41:57,184 [INFO] Authenticated as uid=2
+2026-03-25 08:41:57,184 [INFO] HTTP push server listening on http://127.0.0.1:8899/print
+2026-03-25 08:42:24,648 [INFO] Routing printer "None" to USB VID=0x1FC9 PID=0x2016
+2026-03-25 08:42:24,699 [INFO] USB printer enabled
+2026-03-25 08:45:31,951 [WARNING] Network error during XML-RPC call: [WinError 10061] No connection could be made because the target machine actively refused it. Reconnecting...
+2026-03-25 08:45:31,952 [INFO] Connecting to Odoo at http://localhost:8070 (db=default)...
+2026-03-25 08:45:37,237 [INFO] Authenticated as uid=2
+2026-03-25 08:53:10,227 [INFO] Shutting down (KeyboardInterrupt)
+2026-03-25 08:53:13,910 [INFO] ============================================================
+2026-03-25 08:53:13,910 [INFO] Odoo PoS Print Agent starting...
+2026-03-25 08:53:13,910 [INFO] Mode: usb | Poll interval: 0.2s
+2026-03-25 08:53:13,910 [INFO] Odoo: http://localhost:8070 (db=default)
+2026-03-25 08:53:13,910 [INFO] ============================================================
+2026-03-25 08:53:13,910 [INFO] Connecting to Odoo at http://localhost:8070 (db=default)...
+2026-03-25 08:53:17,217 [INFO] Authenticated as uid=2
+2026-03-25 08:53:17,217 [INFO] HTTP push server listening on http://127.0.0.1:8899/print
+2026-03-25 08:53:28,773 [INFO] Push received: type=receipt route_printer=None keys=['data', 'printer_type', 'printer_name']
+2026-03-25 08:53:28,773 [INFO] Routing printer "None" to USB VID=0x1FC9 PID=0x2016
+2026-03-25 08:53:28,843 [INFO] USB printer enabled
+2026-03-25 08:53:37,022 [INFO] Push received: type=kitchen route_printer=Kitchen keys=['data', 'printer_type', 'printer_name']
+2026-03-25 08:53:37,022 [INFO] Routing printer "Kitchen" to USB VID=0x1FC9 PID=0x2016
+2026-03-25 08:53:37,056 [ERROR] Push print failed: Device not found (Unable to open USB printer on (8137, 8214):
+[Errno 13] Access denied (insufficient permissions))
+Traceback (most recent call last):
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\usb.py", line 134, in open
+    self._check_driver()
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\usb.py", line 161, in _check_driver
+    check_driver = self.device.is_kernel_driver_active(0)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\core.py", line 1107, in is_kernel_driver_active
+    self._ctx.managed_open()
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\core.py", line 113, in wrapper
+    return f(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\core.py", line 131, in managed_open
+    self.handle = self.backend.open_device(self.dev)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\backend\libusb1.py", line 804, in open_device
+    return _DeviceHandle(dev)
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\backend\libusb1.py", line 652, in __init__
+    _check(_lib.libusb_open(self.devid, byref(self.handle)))
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\backend\libusb1.py", line 604, in _check
+    raise USBError(_strerror(ret), ret, _libusb_errno[ret])
+usb.core.USBError: [Errno 13] Access denied (insufficient permissions)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 527, in do_POST
+    format_receipt(data, printer_type, printer)
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 285, in format_receipt
+    printer.set(align='center', font='a', bold=True, height=2, width=2)
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\escpos.py", line 974, in set
+    self._raw(TXT_STYLE["bold"][bold])
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\usb.py", line 189, in _raw
+    assert self.device
+           ^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\escpos.py", line 146, in device
+    self.open()
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\usb.py", line 49, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\usb.py", line 140, in open
+    raise DeviceNotFoundError(
+escpos.exceptions.DeviceNotFoundError: Device not found (Unable to open USB printer on (8137, 8214):
+[Errno 13] Access denied (insufficient permissions))
+2026-03-25 08:53:37,171 [INFO] Push received: type=kitchen route_printer=Kitchen keys=['data', 'printer_type', 'printer_name']
+2026-03-25 08:53:37,171 [INFO] Routing printer "Kitchen" to USB VID=0x1FC9 PID=0x2016
+2026-03-25 08:53:37,188 [ERROR] Push print failed: Device not found (Unable to open USB printer on (8137, 8214):
+[Errno 13] Access denied (insufficient permissions))
+Traceback (most recent call last):
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\usb.py", line 134, in open
+    self._check_driver()
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\usb.py", line 161, in _check_driver
+    check_driver = self.device.is_kernel_driver_active(0)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\core.py", line 1107, in is_kernel_driver_active
+    self._ctx.managed_open()
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\core.py", line 113, in wrapper
+    return f(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\core.py", line 131, in managed_open
+    self.handle = self.backend.open_device(self.dev)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\backend\libusb1.py", line 804, in open_device
+    return _DeviceHandle(dev)
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\backend\libusb1.py", line 652, in __init__
+    _check(_lib.libusb_open(self.devid, byref(self.handle)))
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\backend\libusb1.py", line 604, in _check
+    raise USBError(_strerror(ret), ret, _libusb_errno[ret])
+usb.core.USBError: [Errno 13] Access denied (insufficient permissions)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 527, in do_POST
+    format_receipt(data, printer_type, printer)
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 285, in format_receipt
+    printer.set(align='center', font='a', bold=True, height=2, width=2)
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\escpos.py", line 974, in set
+    self._raw(TXT_STYLE["bold"][bold])
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\usb.py", line 189, in _raw
+    assert self.device
+           ^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\escpos.py", line 146, in device
+    self.open()
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\usb.py", line 49, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\usb.py", line 140, in open
+    raise DeviceNotFoundError(
+escpos.exceptions.DeviceNotFoundError: Device not found (Unable to open USB printer on (8137, 8214):
+[Errno 13] Access denied (insufficient permissions))
+2026-03-25 08:53:37,621 [INFO] Found 2 pending job(s)
+2026-03-25 08:53:39,716 [INFO] Processing job id=16 name=PRINT-20260325-155337-156366 type=kitchen
+2026-03-25 08:53:39,716 [INFO] Routing printer "Kitchen" to USB VID=0x1FC9 PID=0x2016
+2026-03-25 08:53:39,747 [ERROR] Job id=16 FAILED: Device not found (Unable to open USB printer on (8137, 8214):
+[Errno 13] Access denied (insufficient permissions))
+2026-03-25 08:53:41,845 [INFO] Processing job id=17 name=PRINT-20260325-155337-523737 type=kitchen
+2026-03-25 08:53:41,845 [INFO] Routing printer "Bar" to network 192.168.123.100:9100
+2026-03-25 08:53:41,845 [INFO] Network printer enabled
+2026-03-25 08:53:43,920 [INFO] Job id=17 printed successfully
+2026-03-25 08:54:11,103 [INFO] Push received: type=kitchen route_printer=Kitchen keys=['data', 'printer_type', 'printer_name']
+2026-03-25 08:54:11,103 [INFO] Routing printer "Kitchen" to USB VID=0x1FC9 PID=0x2016
+2026-03-25 08:54:11,138 [ERROR] Push print failed: Device not found (Unable to open USB printer on (8137, 8214):
+[Errno 13] Access denied (insufficient permissions))
+Traceback (most recent call last):
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\usb.py", line 134, in open
+    self._check_driver()
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\usb.py", line 161, in _check_driver
+    check_driver = self.device.is_kernel_driver_active(0)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\core.py", line 1107, in is_kernel_driver_active
+    self._ctx.managed_open()
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\core.py", line 113, in wrapper
+    return f(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\core.py", line 131, in managed_open
+    self.handle = self.backend.open_device(self.dev)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\backend\libusb1.py", line 804, in open_device
+    return _DeviceHandle(dev)
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\backend\libusb1.py", line 652, in __init__
+    _check(_lib.libusb_open(self.devid, byref(self.handle)))
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\backend\libusb1.py", line 604, in _check
+    raise USBError(_strerror(ret), ret, _libusb_errno[ret])
+usb.core.USBError: [Errno 13] Access denied (insufficient permissions)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 527, in do_POST
+    format_receipt(data, printer_type, printer)
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 285, in format_receipt
+    printer.set(align='center', font='a', bold=True, height=2, width=2)
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\escpos.py", line 974, in set
+    self._raw(TXT_STYLE["bold"][bold])
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\usb.py", line 189, in _raw
+    assert self.device
+           ^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\escpos.py", line 146, in device
+    self.open()
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\usb.py", line 49, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\usb.py", line 140, in open
+    raise DeviceNotFoundError(
+escpos.exceptions.DeviceNotFoundError: Device not found (Unable to open USB printer on (8137, 8214):
+[Errno 13] Access denied (insufficient permissions))
+2026-03-25 08:54:11,153 [INFO] Push received: type=kitchen route_printer=Kitchen keys=['data', 'printer_type', 'printer_name']
+2026-03-25 08:54:11,153 [INFO] Routing printer "Kitchen" to USB VID=0x1FC9 PID=0x2016
+2026-03-25 08:54:11,202 [ERROR] Push print failed: Device not found (Unable to open USB printer on (8137, 8214):
+[Errno 13] Access denied (insufficient permissions))
+Traceback (most recent call last):
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\usb.py", line 134, in open
+    self._check_driver()
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\usb.py", line 161, in _check_driver
+    check_driver = self.device.is_kernel_driver_active(0)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\core.py", line 1107, in is_kernel_driver_active
+    self._ctx.managed_open()
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\core.py", line 113, in wrapper
+    return f(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\core.py", line 131, in managed_open
+    self.handle = self.backend.open_device(self.dev)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\backend\libusb1.py", line 804, in open_device
+    return _DeviceHandle(dev)
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\backend\libusb1.py", line 652, in __init__
+    _check(_lib.libusb_open(self.devid, byref(self.handle)))
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\backend\libusb1.py", line 604, in _check
+    raise USBError(_strerror(ret), ret, _libusb_errno[ret])
+usb.core.USBError: [Errno 13] Access denied (insufficient permissions)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 527, in do_POST
+    format_receipt(data, printer_type, printer)
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 285, in format_receipt
+    printer.set(align='center', font='a', bold=True, height=2, width=2)
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\escpos.py", line 974, in set
+    self._raw(TXT_STYLE["bold"][bold])
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\usb.py", line 189, in _raw
+    assert self.device
+           ^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\escpos.py", line 146, in device
+    self.open()
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\usb.py", line 49, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\usb.py", line 140, in open
+    raise DeviceNotFoundError(
+escpos.exceptions.DeviceNotFoundError: Device not found (Unable to open USB printer on (8137, 8214):
+[Errno 13] Access denied (insufficient permissions))
+2026-03-25 08:54:11,800 [INFO] Found 2 pending job(s)
+2026-03-25 08:54:13,891 [INFO] Processing job id=18 name=PRINT-20260325-155411-151030 type=kitchen
+2026-03-25 08:54:13,891 [INFO] Routing printer "Kitchen" to USB VID=0x1FC9 PID=0x2016
+2026-03-25 08:54:13,907 [ERROR] Job id=18 FAILED: Device not found (Unable to open USB printer on (8137, 8214):
+[Errno 13] Access denied (insufficient permissions))
+2026-03-25 08:54:15,984 [INFO] Processing job id=19 name=PRINT-20260325-155411-555616 type=kitchen
+2026-03-25 08:54:15,984 [INFO] Routing printer "Bar" to network 192.168.123.100:9100
+2026-03-25 08:54:16,000 [INFO] Network printer enabled
+2026-03-25 08:54:16,001 [ERROR] Job id=19 FAILED: [WinError 10054] An existing connection was forcibly closed by the remote host
+2026-03-25 08:57:55,052 [INFO] Shutting down (KeyboardInterrupt)
+2026-03-25 08:57:55,063 [INFO] Closing Network connection to printer 192.168.123.100
+2026-03-25 08:57:55,064 [INFO] Closing Network connection to printer 192.168.123.100
+2026-03-25 08:57:55,064 [INFO] Closing Usb connection to printer (8137, 8214)
+2026-03-25 09:00:34,966 [INFO] ============================================================
+2026-03-25 09:00:34,966 [INFO] Odoo PoS Print Agent starting...
+2026-03-25 09:00:34,966 [INFO] Mode: usb | Poll interval: 0.2s
+2026-03-25 09:00:34,966 [INFO] Odoo: http://localhost:8070 (db=default)
+2026-03-25 09:00:34,966 [INFO] ============================================================
+2026-03-25 09:00:34,966 [INFO] Connecting to Odoo at http://localhost:8070 (db=default)...
+2026-03-25 09:00:38,241 [INFO] Authenticated as uid=2
+2026-03-25 09:00:38,257 [INFO] HTTP push server listening on http://127.0.0.1:8899/print
+2026-03-25 09:00:50,090 [INFO] Push received: type=receipt route_printer=Receipt keys=['data', 'printer_type', 'printer_name']
+2026-03-25 09:00:50,090 [INFO] Routing printer "Receipt" to USB VID=0x1FC9 PID=0x2016
+2026-03-25 09:00:50,149 [INFO] USB printer enabled
+2026-03-25 09:00:57,535 [INFO] Push received: type=receipt route_printer=Receipt keys=['data', 'printer_type', 'printer_name']
+2026-03-25 09:01:22,971 [INFO] Push received: type=kitchen route_printer=Kitchen keys=['data', 'printer_type', 'printer_name']
+2026-03-25 09:01:22,971 [INFO] Routing printer "Kitchen" to USB VID=0x1FC9 PID=0x2016
+2026-03-25 09:01:22,981 [ERROR] Push print failed: Device not found (Unable to open USB printer on (8137, 8214):
+[Errno 13] Access denied (insufficient permissions))
+Traceback (most recent call last):
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\usb.py", line 134, in open
+    self._check_driver()
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\usb.py", line 161, in _check_driver
+    check_driver = self.device.is_kernel_driver_active(0)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\core.py", line 1107, in is_kernel_driver_active
+    self._ctx.managed_open()
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\core.py", line 113, in wrapper
+    return f(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\core.py", line 131, in managed_open
+    self.handle = self.backend.open_device(self.dev)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\backend\libusb1.py", line 804, in open_device
+    return _DeviceHandle(dev)
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\backend\libusb1.py", line 652, in __init__
+    _check(_lib.libusb_open(self.devid, byref(self.handle)))
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\backend\libusb1.py", line 604, in _check
+    raise USBError(_strerror(ret), ret, _libusb_errno[ret])
+usb.core.USBError: [Errno 13] Access denied (insufficient permissions)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 527, in do_POST
+    format_receipt(data, printer_type, printer)
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 285, in format_receipt
+    printer.set(align='center', font='a', bold=True, height=2, width=2)
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\escpos.py", line 974, in set
+    self._raw(TXT_STYLE["bold"][bold])
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\usb.py", line 189, in _raw
+    assert self.device
+           ^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\escpos.py", line 146, in device
+    self.open()
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\usb.py", line 49, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\usb.py", line 140, in open
+    raise DeviceNotFoundError(
+escpos.exceptions.DeviceNotFoundError: Device not found (Unable to open USB printer on (8137, 8214):
+[Errno 13] Access denied (insufficient permissions))
+2026-03-25 09:01:23,030 [INFO] Push received: type=kitchen route_printer=Bar keys=['data', 'printer_type', 'printer_name']
+2026-03-25 09:01:23,030 [INFO] Routing printer "Bar" to network 192.168.123.100:9100
+2026-03-25 09:01:23,045 [INFO] Network printer enabled
+2026-03-25 09:01:23,279 [INFO] Found 1 pending job(s)
+2026-03-25 09:01:25,356 [INFO] Processing job id=20 name=PRINT-20260325-160123-014247 type=kitchen
+2026-03-25 09:01:25,356 [INFO] Routing printer "Kitchen" to USB VID=0x1FC9 PID=0x2016
+2026-03-25 09:01:25,372 [ERROR] Job id=20 FAILED: Device not found (Unable to open USB printer on (8137, 8214):
+[Errno 13] Access denied (insufficient permissions))
+2026-03-25 09:07:13,740 [INFO] Closing Network connection to printer 192.168.123.100
+2026-03-25 09:07:13,740 [INFO] Closing Usb connection to printer (8137, 8214)
+2026-03-25 09:13:05,920 [INFO] ============================================================
+2026-03-25 09:13:05,920 [INFO] Odoo PoS Print Agent starting...
+2026-03-25 09:13:05,920 [INFO] Mode: usb | Poll interval: 0.2s
+2026-03-25 09:13:05,920 [INFO] Odoo: http://localhost:8070 (db=default)
+2026-03-25 09:13:05,920 [INFO] ============================================================
+2026-03-25 09:13:05,920 [INFO] Connecting to Odoo at http://localhost:8070 (db=default)...
+2026-03-25 09:13:09,136 [INFO] Authenticated as uid=2
+2026-03-25 09:13:09,152 [INFO] HTTP push server listening on http://127.0.0.1:8899/print
+2026-03-25 09:13:35,324 [INFO] Push received: type=kitchen route_printer=Kitchen keys=['data', 'printer_type', 'printer_name']
+2026-03-25 09:13:35,324 [INFO] Routing printer "Kitchen" to USB VID=0x1FC9 PID=0x2016
+2026-03-25 09:13:35,365 [INFO] USB printer enabled
+2026-03-25 09:13:35,382 [INFO] Push received: type=kitchen route_printer=Bar keys=['data', 'printer_type', 'printer_name']
+2026-03-25 09:13:35,382 [INFO] Routing printer "Bar" to network 192.168.123.100:9100
+2026-03-25 09:13:40,393 [ERROR] Push print failed: Device not found (Could not open socket for 192.168.123.100:
+timed out)
+Traceback (most recent call last):
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\network.py", line 100, in open
+    self.device.connect((self.host, self.port))
+TimeoutError: timed out
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 527, in do_POST
+    format_receipt(data, printer_type, printer)
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 285, in format_receipt
+    printer.set(align='center', font='a', bold=True, height=2, width=2)
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\escpos.py", line 974, in set
+    self._raw(TXT_STYLE["bold"][bold])
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\network.py", line 118, in _raw
+    assert self.device
+           ^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\escpos.py", line 146, in device
+    self.open()
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\network.py", line 105, in open
+    raise DeviceNotFoundError(
+escpos.exceptions.DeviceNotFoundError: Device not found (Could not open socket for 192.168.123.100:
+timed out)
+2026-03-25 09:13:40,998 [INFO] Found 1 pending job(s)
+2026-03-25 09:13:43,079 [INFO] Processing job id=21 name=PRINT-20260325-161340-432180 type=kitchen
+2026-03-25 09:13:43,079 [INFO] Routing printer "Bar" to network 192.168.123.100:9100
+2026-03-25 09:13:48,091 [ERROR] Job id=21 FAILED: Device not found (Could not open socket for 192.168.123.100:
+timed out)
+2026-03-25 09:14:08,448 [INFO] Shutting down (KeyboardInterrupt)
+2026-03-25 09:14:08,477 [INFO] Closing Usb connection to printer (8137, 8214)
+2026-03-25 09:14:11,127 [INFO] ============================================================
+2026-03-25 09:14:11,127 [INFO] Odoo PoS Print Agent starting...
+2026-03-25 09:14:11,127 [INFO] Mode: usb | Poll interval: 0.2s
+2026-03-25 09:14:11,127 [INFO] Odoo: http://localhost:8070 (db=default)
+2026-03-25 09:14:11,127 [INFO] ============================================================
+2026-03-25 09:14:11,127 [INFO] Connecting to Odoo at http://localhost:8070 (db=default)...
+2026-03-25 09:14:14,320 [INFO] Authenticated as uid=2
+2026-03-25 09:14:14,336 [INFO] HTTP push server listening on http://127.0.0.1:8899/print
+2026-03-25 09:14:25,728 [INFO] Push received: type=kitchen route_printer=Kitchen keys=['data', 'printer_type', 'printer_name']
+2026-03-25 09:14:25,728 [INFO] Routing printer "Kitchen" to USB VID=0x1FC9 PID=0x2016
+2026-03-25 09:14:25,777 [INFO] USB printer enabled
+2026-03-25 09:14:25,794 [INFO] Push received: type=kitchen route_printer=Bar keys=['data', 'printer_type', 'printer_name']
+2026-03-25 09:14:25,794 [INFO] Routing printer "Bar" to network 192.168.123.100:9100
+2026-03-25 09:14:30,796 [ERROR] Push print failed: Device not found (Could not open socket for 192.168.123.100:
+timed out)
+Traceback (most recent call last):
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\network.py", line 100, in open
+    self.device.connect((self.host, self.port))
+TimeoutError: timed out
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 527, in do_POST
+    format_receipt(data, printer_type, printer)
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 285, in format_receipt
+    printer.set(align='center', font='a', bold=True, height=2, width=2)
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\escpos.py", line 974, in set
+    self._raw(TXT_STYLE["bold"][bold])
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\network.py", line 118, in _raw
+    assert self.device
+           ^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\escpos.py", line 146, in device
+    self.open()
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\network.py", line 105, in open
+    raise DeviceNotFoundError(
+escpos.exceptions.DeviceNotFoundError: Device not found (Could not open socket for 192.168.123.100:
+timed out)
+2026-03-25 09:14:32,390 [INFO] Found 1 pending job(s)
+2026-03-25 09:14:34,475 [INFO] Processing job id=22 name=PRINT-20260325-161430-812283 type=kitchen
+2026-03-25 09:14:41,254 [INFO] Routing printer "Bar" to network 192.168.123.100:9100
+2026-03-25 09:14:46,263 [ERROR] Job id=22 FAILED: Device not found (Could not open socket for 192.168.123.100:
+timed out)
+2026-03-25 09:17:02,091 [INFO] Shutting down (KeyboardInterrupt)
+2026-03-25 09:17:02,113 [INFO] Closing Usb connection to printer (8137, 8214)
+2026-03-25 09:18:10,418 [INFO] ============================================================
+2026-03-25 09:18:10,418 [INFO] Odoo PoS Print Agent starting...
+2026-03-25 09:18:10,418 [INFO] Mode: usb | Poll interval: 0.2s
+2026-03-25 09:18:10,418 [INFO] Odoo: http://localhost:8070 (db=default)
+2026-03-25 09:18:10,418 [INFO] ============================================================
+2026-03-25 09:18:10,418 [INFO] Connecting to Odoo at http://localhost:8070 (db=default)...
+2026-03-25 09:18:13,802 [INFO] Authenticated as uid=2
+2026-03-25 09:18:13,888 [INFO] HTTP push server listening on http://127.0.0.1:8899/print
+2026-03-25 09:18:23,651 [WARNING] Network error during XML-RPC call: [WinError 10061] No connection could be made because the target machine actively refused it. Reconnecting...
+2026-03-25 09:18:23,651 [INFO] Connecting to Odoo at http://localhost:8070 (db=default)...
+2026-03-25 09:18:28,730 [INFO] Authenticated as uid=2
+2026-03-25 09:18:39,736 [INFO] Push received: type=receipt route_printer=Receipt keys=['data', 'printer_type', 'printer_name']
+2026-03-25 09:18:39,736 [INFO] Routing printer "Receipt" to USB VID=0x1FC9 PID=0x2016
+2026-03-25 09:18:39,788 [INFO] USB printer enabled
+2026-03-25 09:18:46,736 [INFO] Push received: type=receipt route_printer=Receipt keys=['data', 'printer_type', 'printer_name']
+2026-03-25 09:18:54,685 [INFO] Push received: type=receipt route_printer=Receipt keys=['data', 'printer_type', 'printer_name']
+2026-03-25 09:19:12,053 [INFO] Push received: type=kitchen route_printer=Kitchen keys=['data', 'printer_type', 'printer_name']
+2026-03-25 09:19:12,053 [INFO] Routing printer "Kitchen" to USB VID=0x1FC9 PID=0x2016
+2026-03-25 09:19:12,069 [ERROR] Push print failed: Device not found (Unable to open USB printer on (8137, 8214):
+[Errno 13] Access denied (insufficient permissions))
+Traceback (most recent call last):
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\usb.py", line 134, in open
+    self._check_driver()
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\usb.py", line 161, in _check_driver
+    check_driver = self.device.is_kernel_driver_active(0)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\core.py", line 1107, in is_kernel_driver_active
+    self._ctx.managed_open()
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\core.py", line 113, in wrapper
+    return f(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\core.py", line 131, in managed_open
+    self.handle = self.backend.open_device(self.dev)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\backend\libusb1.py", line 804, in open_device
+    return _DeviceHandle(dev)
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\backend\libusb1.py", line 652, in __init__
+    _check(_lib.libusb_open(self.devid, byref(self.handle)))
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\backend\libusb1.py", line 604, in _check
+    raise USBError(_strerror(ret), ret, _libusb_errno[ret])
+usb.core.USBError: [Errno 13] Access denied (insufficient permissions)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 527, in do_POST
+    format_receipt(data, printer_type, printer)
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 285, in format_receipt
+    printer.set(align='center', font='a', bold=True, height=2, width=2)
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\escpos.py", line 974, in set
+    self._raw(TXT_STYLE["bold"][bold])
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\usb.py", line 189, in _raw
+    assert self.device
+           ^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\escpos.py", line 146, in device
+    self.open()
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\usb.py", line 49, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\usb.py", line 140, in open
+    raise DeviceNotFoundError(
+escpos.exceptions.DeviceNotFoundError: Device not found (Unable to open USB printer on (8137, 8214):
+[Errno 13] Access denied (insufficient permissions))
+2026-03-25 09:19:12,469 [INFO] Push received: type=kitchen route_printer=Bar keys=['data', 'printer_type', 'printer_name']
+2026-03-25 09:19:12,469 [INFO] Routing printer "Bar" to network 192.168.123.100:9100
+2026-03-25 09:19:12,485 [INFO] Network printer enabled
+2026-03-25 09:19:13,643 [INFO] Found 1 pending job(s)
+2026-03-25 09:19:15,724 [INFO] Processing job id=23 name=PRINT-20260325-161912-454284 type=kitchen
+2026-03-25 09:19:15,724 [INFO] Routing printer "Kitchen" to USB VID=0x1FC9 PID=0x2016
+2026-03-25 09:19:15,755 [ERROR] Job id=23 FAILED: Device not found (Unable to open USB printer on (8137, 8214):
+[Errno 13] Access denied (insufficient permissions))
+2026-03-25 09:20:20,282 [INFO] Push received: type=kitchen route_printer=Kitchen keys=['data', 'printer_type', 'printer_name']
+2026-03-25 09:20:20,282 [INFO] Routing printer "Kitchen" to USB VID=0x1FC9 PID=0x2016
+2026-03-25 09:20:20,296 [ERROR] Push print failed: Device not found (Unable to open USB printer on (8137, 8214):
+[Errno 13] Access denied (insufficient permissions))
+Traceback (most recent call last):
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\usb.py", line 134, in open
+    self._check_driver()
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\usb.py", line 161, in _check_driver
+    check_driver = self.device.is_kernel_driver_active(0)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\core.py", line 1107, in is_kernel_driver_active
+    self._ctx.managed_open()
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\core.py", line 113, in wrapper
+    return f(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\core.py", line 131, in managed_open
+    self.handle = self.backend.open_device(self.dev)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\backend\libusb1.py", line 804, in open_device
+    return _DeviceHandle(dev)
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\backend\libusb1.py", line 652, in __init__
+    _check(_lib.libusb_open(self.devid, byref(self.handle)))
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\backend\libusb1.py", line 604, in _check
+    raise USBError(_strerror(ret), ret, _libusb_errno[ret])
+usb.core.USBError: [Errno 13] Access denied (insufficient permissions)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 527, in do_POST
+    format_receipt(data, printer_type, printer)
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 285, in format_receipt
+    printer.set(align='center', font='a', bold=True, height=2, width=2)
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\escpos.py", line 974, in set
+    self._raw(TXT_STYLE["bold"][bold])
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\usb.py", line 189, in _raw
+    assert self.device
+           ^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\escpos.py", line 146, in device
+    self.open()
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\usb.py", line 49, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\usb.py", line 140, in open
+    raise DeviceNotFoundError(
+escpos.exceptions.DeviceNotFoundError: Device not found (Unable to open USB printer on (8137, 8214):
+[Errno 13] Access denied (insufficient permissions))
+2026-03-25 09:20:20,327 [INFO] Push received: type=kitchen route_printer=Bar keys=['data', 'printer_type', 'printer_name']
+2026-03-25 09:20:20,328 [INFO] Routing printer "Bar" to network 192.168.123.100:9100
+2026-03-25 09:20:20,328 [INFO] Network printer enabled
+2026-03-25 09:20:20,328 [ERROR] Push print failed: [WinError 10054] An existing connection was forcibly closed by the remote host
+Traceback (most recent call last):
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 527, in do_POST
+    format_receipt(data, printer_type, printer)
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 285, in format_receipt
+    printer.set(align='center', font='a', bold=True, height=2, width=2)
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\escpos.py", line 974, in set
+    self._raw(TXT_STYLE["bold"][bold])
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\network.py", line 119, in _raw
+    self.device.sendall(msg)
+ConnectionResetError: [WinError 10054] An existing connection was forcibly closed by the remote host
+2026-03-25 09:20:22,337 [INFO] Found 2 pending job(s)
+2026-03-25 09:20:24,527 [INFO] Processing job id=24 name=PRINT-20260325-162020-312449 type=kitchen
+2026-03-25 09:20:24,527 [INFO] Routing printer "Kitchen" to USB VID=0x1FC9 PID=0x2016
+2026-03-25 09:20:24,543 [ERROR] Job id=24 FAILED: Device not found (Unable to open USB printer on (8137, 8214):
+[Errno 13] Access denied (insufficient permissions))
+2026-03-25 09:20:26,632 [INFO] Processing job id=25 name=PRINT-20260325-162020-657619 type=kitchen
+2026-03-25 09:20:26,632 [INFO] Routing printer "Bar" to network 192.168.123.100:9100
+2026-03-25 09:20:26,632 [INFO] Network printer enabled
+2026-03-25 09:20:26,632 [ERROR] Job id=25 FAILED: [WinError 10054] An existing connection was forcibly closed by the remote host
+2026-03-25 09:28:05,782 [INFO] Shutting down (KeyboardInterrupt)
+2026-03-25 09:28:05,782 [INFO] Closing Network connection to printer 192.168.123.100
+2026-03-25 09:28:05,782 [INFO] Closing Network connection to printer 192.168.123.100
+2026-03-25 09:28:05,782 [INFO] Closing Network connection to printer 192.168.123.100
+2026-03-25 09:28:05,782 [INFO] Closing Usb connection to printer (8137, 8214)
+2026-03-25 09:31:53,148 [INFO] ============================================================
+2026-03-25 09:31:53,149 [INFO] Odoo PoS Print Agent starting...
+2026-03-25 09:31:53,149 [INFO] Mode: usb | Poll interval: 0.2s
+2026-03-25 09:31:53,149 [INFO] Odoo: http://localhost:8070 (db=default)
+2026-03-25 09:31:53,149 [INFO] ============================================================
+2026-03-25 09:31:53,150 [INFO] Connecting to Odoo at http://localhost:8070 (db=default)...
+2026-03-25 09:31:56,516 [INFO] Authenticated as uid=2
+2026-03-25 09:31:56,521 [INFO] HTTP push server listening on http://127.0.0.1:8899/print
+2026-03-25 09:32:14,004 [INFO] Push received: type=receipt route_printer=Receipt keys=['data', 'printer_type', 'printer_name']
+2026-03-25 09:32:14,004 [INFO] Routing printer "Receipt" to USB VID=0x1FC9 PID=0x2016
+2026-03-25 09:32:14,052 [INFO] USB printer enabled
+2026-03-25 09:32:20,663 [INFO] Push received: type=receipt route_printer=Receipt keys=['data', 'printer_type', 'printer_name']
+2026-03-25 09:32:30,515 [INFO] Push received: type=kitchen route_printer=Kitchen keys=['data', 'printer_type', 'printer_name']
+2026-03-25 09:32:30,516 [INFO] Routing printer "Kitchen" to USB VID=0x1FC9 PID=0x2016
+2026-03-25 09:32:30,535 [ERROR] Push print failed: Device not found (Unable to open USB printer on (8137, 8214):
+[Errno 13] Access denied (insufficient permissions))
+Traceback (most recent call last):
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\usb.py", line 134, in open
+    self._check_driver()
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\usb.py", line 161, in _check_driver
+    check_driver = self.device.is_kernel_driver_active(0)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\core.py", line 1107, in is_kernel_driver_active
+    self._ctx.managed_open()
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\core.py", line 113, in wrapper
+    return f(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\core.py", line 131, in managed_open
+    self.handle = self.backend.open_device(self.dev)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\backend\libusb1.py", line 804, in open_device
+    return _DeviceHandle(dev)
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\backend\libusb1.py", line 652, in __init__
+    _check(_lib.libusb_open(self.devid, byref(self.handle)))
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\usb\backend\libusb1.py", line 604, in _check
+    raise USBError(_strerror(ret), ret, _libusb_errno[ret])
+usb.core.USBError: [Errno 13] Access denied (insufficient permissions)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 527, in do_POST
+    format_receipt(data, printer_type, printer)
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 285, in format_receipt
+    printer.set(align='center', font='a', bold=True, height=2, width=2)
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\escpos.py", line 974, in set
+    self._raw(TXT_STYLE["bold"][bold])
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\usb.py", line 189, in _raw
+    assert self.device
+           ^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\escpos.py", line 146, in device
+    self.open()
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\usb.py", line 49, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\usb.py", line 140, in open
+    raise DeviceNotFoundError(
+escpos.exceptions.DeviceNotFoundError: Device not found (Unable to open USB printer on (8137, 8214):
+[Errno 13] Access denied (insufficient permissions))
+2026-03-25 09:32:30,560 [INFO] Push received: type=kitchen route_printer=Bar keys=['data', 'printer_type', 'printer_name']
+2026-03-25 09:32:30,560 [INFO] Routing printer "Bar" to network 192.168.123.100:9100
+2026-03-25 09:32:30,563 [INFO] Network printer enabled
+2026-03-25 09:32:31,038 [INFO] Found 1 pending job(s)
+2026-03-25 09:32:33,142 [INFO] Processing job id=26 name=PRINT-20260325-163230-551077 type=kitchen
+2026-03-25 09:32:33,142 [INFO] Routing printer "Kitchen" to USB VID=0x1FC9 PID=0x2016
+2026-03-25 09:32:33,163 [ERROR] Job id=26 FAILED: Device not found (Unable to open USB printer on (8137, 8214):
+[Errno 13] Access denied (insufficient permissions))
+2026-03-25 09:35:26,688 [WARNING] Network error during XML-RPC call: [WinError 10061] No connection could be made because the target machine actively refused it. Reconnecting...
+2026-03-25 09:35:26,703 [INFO] Connecting to Odoo at http://localhost:8070 (db=default)...
+2026-03-25 09:35:36,413 [INFO] Authenticated as uid=2
+2026-03-25 10:00:08,212 [INFO] Shutting down (KeyboardInterrupt)
+2026-03-25 10:00:08,224 [INFO] Closing Network connection to printer 192.168.123.100
+2026-03-25 10:00:08,225 [INFO] Closing Usb connection to printer (8137, 8214)
+2026-03-25 10:00:11,705 [INFO] ============================================================
+2026-03-25 10:00:11,706 [INFO] Odoo PoS Print Agent starting...
+2026-03-25 10:00:11,706 [INFO] Mode: network | Poll interval: 0.2s
+2026-03-25 10:00:11,706 [INFO] Odoo: http://localhost:8070 (db=default)
+2026-03-25 10:00:11,706 [INFO] ============================================================
+2026-03-25 10:00:11,707 [INFO] Connecting to Odoo at http://localhost:8070 (db=default)...
+2026-03-25 10:00:14,916 [INFO] Authenticated as uid=2
+2026-03-25 10:00:14,921 [INFO] HTTP push server listening on http://127.0.0.1:8899/print
+2026-03-25 10:00:26,429 [INFO] Push received: type=receipt route_printer=Receipt keys=['data', 'printer_type', 'printer_name']
+2026-03-25 10:00:26,429 [INFO] Routing printer "Receipt" to network 192.168.123.100:9100
+2026-03-25 10:00:26,430 [INFO] Network printer enabled
+2026-03-25 10:00:26,440 [INFO] Closing Network connection to printer 192.168.123.100
+2026-03-25 10:00:45,434 [INFO] Push received: type=kitchen route_printer=Kitchen keys=['data', 'printer_type', 'printer_name']
+2026-03-25 10:00:45,434 [INFO] Routing printer "Kitchen" to network 192.168.123.101:9100
+2026-03-25 10:00:50,446 [ERROR] Push print failed: Device not found (Could not open socket for 192.168.123.101:
+timed out)
+Traceback (most recent call last):
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\network.py", line 100, in open
+    self.device.connect((self.host, self.port))
+TimeoutError: timed out
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 526, in do_POST
+    format_receipt(data, printer_type, printer)
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 284, in format_receipt
+    printer.set(align='center', font='a', bold=True, height=2, width=2)
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\escpos.py", line 974, in set
+    self._raw(TXT_STYLE["bold"][bold])
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\network.py", line 118, in _raw
+    assert self.device
+           ^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\escpos.py", line 146, in device
+    self.open()
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\network.py", line 105, in open
+    raise DeviceNotFoundError(
+escpos.exceptions.DeviceNotFoundError: Device not found (Could not open socket for 192.168.123.101:
+timed out)
+2026-03-25 10:00:51,434 [INFO] Found 1 pending job(s)
+2026-03-25 10:00:53,511 [INFO] Processing job id=27 name=PRINT-20260325-170050-816219 type=kitchen
+2026-03-25 10:00:53,511 [INFO] Routing printer "Kitchen" to network 192.168.123.101:9100
+2026-03-25 10:00:58,528 [ERROR] Job id=27 FAILED: Device not found (Could not open socket for 192.168.123.101:
+timed out)
+2026-03-25 10:01:44,265 [INFO] Push received: type=kitchen route_printer=Bar keys=['data', 'printer_type', 'printer_name']
+2026-03-25 10:01:44,265 [INFO] Routing printer "Bar" to network 192.168.123.100:9100
+2026-03-25 10:01:44,266 [INFO] Network printer enabled
+2026-03-25 10:01:44,267 [INFO] Closing Network connection to printer 192.168.123.100
+2026-03-25 10:27:33,958 [INFO] ============================================================
+2026-03-25 10:27:33,959 [INFO] Odoo PoS Print Agent starting...
+2026-03-25 10:27:33,959 [INFO] Mode: network | Poll interval: 0.2s
+2026-03-25 10:27:33,959 [INFO] Odoo: http://localhost:8070 (db=default)
+2026-03-25 10:27:33,959 [INFO] ============================================================
+2026-03-25 10:27:33,959 [INFO] Connecting to Odoo at http://localhost:8070 (db=default)...
+2026-03-25 10:27:37,092 [INFO] Authenticated as uid=2
+2026-03-25 10:27:37,097 [INFO] HTTP push server listening on http://127.0.0.1:8899/print
+2026-03-25 10:27:46,923 [INFO] Push received: type=receipt route_printer=Receipt keys=['data', 'printer_type', 'printer_name']
+2026-03-25 10:27:46,924 [INFO] Routing printer "Receipt" to network 192.168.123.100:9100
+2026-03-25 10:27:46,925 [INFO] Network printer enabled
+2026-03-25 10:27:46,931 [INFO] Closing Network connection to printer 192.168.123.100
+2026-03-25 10:27:52,224 [INFO] Push received: type=receipt route_printer=Receipt keys=['data', 'printer_type', 'printer_name']
+2026-03-25 10:27:52,225 [INFO] Routing printer "Receipt" to network 192.168.123.100:9100
+2026-03-25 10:27:52,226 [INFO] Network printer enabled
+2026-03-25 10:27:52,227 [INFO] Closing Network connection to printer 192.168.123.100
+2026-03-25 10:28:19,381 [INFO] Push received: type=kitchen route_printer=Kitchen keys=['data', 'printer_type', 'printer_name']
+2026-03-25 10:28:19,382 [INFO] Routing printer "Kitchen" to network 192.168.123.101:9100
+2026-03-25 10:28:20,396 [WARNING] Print attempt 1/2 failed for route "Kitchen": Device not found (Could not open socket for 192.168.123.101:
+timed out). Retrying...
+2026-03-25 10:28:20,548 [INFO] Routing printer "Kitchen" to network 192.168.123.101:9100
+2026-03-25 10:28:21,559 [ERROR] Push print failed: Device not found (Could not open socket for 192.168.123.101:
+timed out)
+Traceback (most recent call last):
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\network.py", line 100, in open
+    self.device.connect((self.host, self.port))
+TimeoutError: timed out
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 668, in do_POST
+    print_with_route(data, printer_type, route_printer)
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 299, in print_with_route
+    format_receipt(data, printer_type, printer)
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 421, in format_receipt
+    printer.set(align='center', font='a', bold=True, height=2, width=2)
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\escpos.py", line 974, in set
+    self._raw(TXT_STYLE["bold"][bold])
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\network.py", line 118, in _raw
+    assert self.device
+           ^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\escpos.py", line 146, in device
+    self.open()
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\network.py", line 105, in open
+    raise DeviceNotFoundError(
+escpos.exceptions.DeviceNotFoundError: Device not found (Could not open socket for 192.168.123.101:
+timed out)
+2026-03-25 10:28:21,601 [INFO] Push received: type=kitchen route_printer=Bar keys=['data', 'printer_type', 'printer_name']
+2026-03-25 10:28:21,601 [INFO] Routing printer "Bar" to network 192.168.123.100:9100
+2026-03-25 10:28:21,603 [INFO] Network printer enabled
+2026-03-25 10:28:21,604 [INFO] Closing Network connection to printer 192.168.123.100
+2026-03-25 10:28:21,908 [INFO] Found 1 pending job(s)
+2026-03-25 10:28:24,093 [INFO] Processing job id=28 name=PRINT-20260325-172821-576220 type=kitchen
+2026-03-25 10:28:24,093 [ERROR] Job id=28 FAILED: Route "Kitchen" temporarily skipped (0.5s cooldown remaining)
+2026-03-25 10:28:53,124 [INFO] Push received: type=kitchen route_printer=Bar keys=['data', 'printer_type', 'printer_name']
+2026-03-25 10:28:53,125 [INFO] Routing printer "Bar" to network 192.168.123.100:9100
+2026-03-25 10:28:53,140 [INFO] Network printer enabled
+2026-03-25 10:28:53,141 [INFO] Closing Network connection to printer 192.168.123.100
+2026-03-25 10:29:32,890 [INFO] Push received: type=kitchen route_printer=Kitchen keys=['data', 'printer_type', 'printer_name']
+2026-03-25 10:29:32,891 [INFO] Routing printer "Kitchen" to network 192.168.123.101:9100
+2026-03-25 10:29:32,892 [INFO] Network printer enabled
+2026-03-25 10:29:32,892 [INFO] Closing Network connection to printer 192.168.123.101
+2026-03-25 10:29:43,777 [INFO] Push received: type=kitchen route_printer=Kitchen keys=['data', 'printer_type', 'printer_name']
+2026-03-25 10:29:43,777 [INFO] Routing printer "Kitchen" to network 192.168.123.101:9100
+2026-03-25 10:29:43,779 [INFO] Network printer enabled
+2026-03-25 10:29:43,780 [INFO] Closing Network connection to printer 192.168.123.101
+2026-03-25 10:30:41,099 [INFO] Push received: type=kitchen route_printer=Kitchen keys=['data', 'printer_type', 'printer_name']
+2026-03-25 10:30:41,099 [INFO] Routing printer "Kitchen" to network 192.168.123.101:9100
+2026-03-25 10:30:41,100 [INFO] Network printer enabled
+2026-03-25 10:30:41,100 [INFO] Closing Network connection to printer 192.168.123.101
+2026-03-25 10:30:41,108 [INFO] Push received: type=kitchen route_printer=Bar keys=['data', 'printer_type', 'printer_name']
+2026-03-25 10:30:41,109 [INFO] Routing printer "Bar" to network 192.168.123.100:9100
+2026-03-25 10:30:42,114 [WARNING] Print attempt 1/2 failed for route "Bar": Device not found (Could not open socket for 192.168.123.100:
+timed out). Retrying...
+2026-03-25 10:30:42,265 [INFO] Routing printer "Bar" to network 192.168.123.100:9100
+2026-03-25 10:30:43,277 [ERROR] Push print failed: Device not found (Could not open socket for 192.168.123.100:
+timed out)
+Traceback (most recent call last):
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\network.py", line 100, in open
+    self.device.connect((self.host, self.port))
+TimeoutError: timed out
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 668, in do_POST
+    print_with_route(data, printer_type, route_printer)
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 299, in print_with_route
+    format_receipt(data, printer_type, printer)
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 421, in format_receipt
+    printer.set(align='center', font='a', bold=True, height=2, width=2)
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\escpos.py", line 974, in set
+    self._raw(TXT_STYLE["bold"][bold])
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\network.py", line 118, in _raw
+    assert self.device
+           ^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\escpos.py", line 146, in device
+    self.open()
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\network.py", line 105, in open
+    raise DeviceNotFoundError(
+escpos.exceptions.DeviceNotFoundError: Device not found (Could not open socket for 192.168.123.100:
+timed out)
+2026-03-25 10:30:44,778 [INFO] Found 1 pending job(s)
+2026-03-25 10:30:46,872 [INFO] Processing job id=29 name=PRINT-20260325-173043-288173 type=kitchen
+2026-03-25 10:30:46,872 [INFO] Routing printer "Bar" to network 192.168.123.100:9100
+2026-03-25 10:30:47,885 [WARNING] Print attempt 1/2 failed for route "Bar": Device not found (Could not open socket for 192.168.123.100:
+timed out). Retrying...
+2026-03-25 10:30:48,036 [INFO] Routing printer "Bar" to network 192.168.123.100:9100
+2026-03-25 10:30:49,047 [ERROR] Job id=29 FAILED: Device not found (Could not open socket for 192.168.123.100:
+timed out)
+2026-03-25 10:31:09,962 [INFO] Push received: type=kitchen route_printer=Bar keys=['data', 'printer_type', 'printer_name']
+2026-03-25 10:31:09,962 [INFO] Routing printer "Bar" to network 192.168.123.100:9100
+2026-03-25 10:31:09,963 [INFO] Network printer enabled
+2026-03-25 10:31:09,964 [INFO] Closing Network connection to printer 192.168.123.100
+2026-03-25 10:32:50,965 [INFO] Push received: type=receipt route_printer=Receipt keys=['data', 'printer_type', 'printer_name']
+2026-03-25 10:32:50,965 [INFO] Routing printer "Receipt" to network 192.168.123.100:9100
+2026-03-25 10:32:50,978 [INFO] Network printer enabled
+2026-03-25 10:32:50,978 [INFO] Closing Network connection to printer 192.168.123.100
+2026-03-25 10:33:56,790 [INFO] Push received: type=kitchen route_printer=Kitchen keys=['data', 'printer_type', 'printer_name']
+2026-03-25 10:33:56,791 [INFO] Routing printer "Kitchen" to network 192.168.123.101:9100
+2026-03-25 10:33:57,797 [WARNING] Print attempt 1/2 failed for route "Kitchen": Device not found (Could not open socket for 192.168.123.101:
+timed out). Retrying...
+2026-03-25 10:33:57,948 [INFO] Routing printer "Kitchen" to network 192.168.123.101:9100
+2026-03-25 10:33:58,956 [ERROR] Push print failed: Device not found (Could not open socket for 192.168.123.101:
+timed out)
+Traceback (most recent call last):
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\network.py", line 100, in open
+    self.device.connect((self.host, self.port))
+TimeoutError: timed out
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 668, in do_POST
+    print_with_route(data, printer_type, route_printer)
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 299, in print_with_route
+    format_receipt(data, printer_type, printer)
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 421, in format_receipt
+    printer.set(align='center', font='a', bold=True, height=2, width=2)
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\escpos.py", line 974, in set
+    self._raw(TXT_STYLE["bold"][bold])
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\network.py", line 118, in _raw
+    assert self.device
+           ^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\escpos.py", line 146, in device
+    self.open()
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\network.py", line 105, in open
+    raise DeviceNotFoundError(
+escpos.exceptions.DeviceNotFoundError: Device not found (Could not open socket for 192.168.123.101:
+timed out)
+2026-03-25 10:34:00,921 [INFO] Found 1 pending job(s)
+2026-03-25 10:34:03,000 [INFO] Processing job id=30 name=PRINT-20260325-173359-270538 type=kitchen
+2026-03-25 10:34:03,000 [INFO] Routing printer "Kitchen" to network 192.168.123.101:9100
+2026-03-25 10:34:04,012 [WARNING] Print attempt 1/2 failed for route "Kitchen": Device not found (Could not open socket for 192.168.123.101:
+timed out). Retrying...
+2026-03-25 10:34:04,164 [INFO] Routing printer "Kitchen" to network 192.168.123.101:9100
+2026-03-25 10:34:05,168 [ERROR] Job id=30 FAILED: Device not found (Could not open socket for 192.168.123.101:
+timed out)
+2026-03-25 10:34:14,134 [INFO] Push received: type=kitchen route_printer=Bar keys=['data', 'printer_type', 'printer_name']
+2026-03-25 10:34:14,134 [INFO] Routing printer "Bar" to network 192.168.123.100:9100
+2026-03-25 10:34:14,134 [INFO] Network printer enabled
+2026-03-25 10:34:14,134 [INFO] Closing Network connection to printer 192.168.123.100
+2026-03-25 10:34:52,863 [INFO] Push received: type=kitchen route_printer=Kitchen keys=['data', 'printer_type', 'printer_name']
+2026-03-25 10:34:52,863 [INFO] Routing printer "Kitchen" to network 192.168.123.101:9100
+2026-03-25 10:34:52,864 [INFO] Network printer enabled
+2026-03-25 10:34:52,865 [INFO] Closing Network connection to printer 192.168.123.101
+2026-03-25 10:42:12,309 [INFO] Push received: type=receipt route_printer=Receipt keys=['data', 'printer_type', 'printer_name']
+2026-03-25 10:42:12,309 [INFO] Routing printer "Receipt" to network 192.168.123.100:9100
+2026-03-25 10:42:13,317 [WARNING] Print attempt 1/2 failed for route "Receipt": Device not found (Could not open socket for 192.168.123.100:
+timed out). Retrying...
+2026-03-25 10:42:13,468 [INFO] Routing printer "Receipt" to network 192.168.123.100:9100
+2026-03-25 10:42:14,483 [ERROR] Push print failed: Device not found (Could not open socket for 192.168.123.100:
+timed out)
+Traceback (most recent call last):
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\network.py", line 100, in open
+    self.device.connect((self.host, self.port))
+TimeoutError: timed out
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 668, in do_POST
+    print_with_route(data, printer_type, route_printer)
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 299, in print_with_route
+    format_receipt(data, printer_type, printer)
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 421, in format_receipt
+    printer.set(align='center', font='a', bold=True, height=2, width=2)
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\escpos.py", line 974, in set
+    self._raw(TXT_STYLE["bold"][bold])
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\network.py", line 118, in _raw
+    assert self.device
+           ^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\escpos.py", line 146, in device
+    self.open()
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\network.py", line 105, in open
+    raise DeviceNotFoundError(
+escpos.exceptions.DeviceNotFoundError: Device not found (Could not open socket for 192.168.123.100:
+timed out)
+2026-03-25 10:42:15,792 [INFO] Found 1 pending job(s)
+2026-03-25 10:42:17,982 [INFO] Processing job id=31 name=PRINT-20260325-174214-798870 type=receipt
+2026-03-25 10:42:17,982 [INFO] Routing printer "Receipt" to network 192.168.123.100:9100
+2026-03-25 10:42:18,992 [WARNING] Print attempt 1/2 failed for route "Receipt": Device not found (Could not open socket for 192.168.123.100:
+timed out). Retrying...
+2026-03-25 10:42:19,142 [INFO] Routing printer "Receipt" to network 192.168.123.100:9100
+2026-03-25 10:42:20,153 [ERROR] Job id=31 FAILED: Device not found (Could not open socket for 192.168.123.100:
+timed out)
+2026-03-25 10:42:33,877 [INFO] Shutting down (KeyboardInterrupt)
+2026-03-25 10:42:36,547 [INFO] ============================================================
+2026-03-25 10:42:36,547 [INFO] Odoo PoS Print Agent starting...
+2026-03-25 10:42:36,547 [INFO] Mode: network | Poll interval: 0.2s
+2026-03-25 10:42:36,547 [INFO] Odoo: http://localhost:8070 (db=default)
+2026-03-25 10:42:36,548 [INFO] ============================================================
+2026-03-25 10:42:36,549 [INFO] Connecting to Odoo at http://localhost:8070 (db=default)...
+2026-03-25 10:42:39,628 [INFO] Authenticated as uid=2
+2026-03-25 10:42:39,632 [INFO] HTTP push server listening on http://127.0.0.1:8899/print
+2026-03-25 10:42:57,032 [INFO] Push received: type=kitchen route_printer=Bar keys=['data', 'printer_type', 'printer_name']
+2026-03-25 10:42:57,032 [INFO] Routing printer "Bar" to network 192.168.123.100:9100
+2026-03-25 10:42:58,041 [WARNING] Print attempt 1/2 failed for route "Bar": Device not found (Could not open socket for 192.168.123.100:
+timed out). Retrying...
+2026-03-25 10:42:58,192 [INFO] Routing printer "Bar" to network 192.168.123.100:9100
+2026-03-25 10:42:59,206 [ERROR] Push print failed: Device not found (Could not open socket for 192.168.123.100:
+timed out)
+Traceback (most recent call last):
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\network.py", line 100, in open
+    self.device.connect((self.host, self.port))
+TimeoutError: timed out
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 668, in do_POST
+    print_with_route(data, printer_type, route_printer)
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 299, in print_with_route
+    format_receipt(data, printer_type, printer)
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 421, in format_receipt
+    printer.set(align='center', font='a', bold=True, height=2, width=2)
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\escpos.py", line 974, in set
+    self._raw(TXT_STYLE["bold"][bold])
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\network.py", line 118, in _raw
+    assert self.device
+           ^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\escpos.py", line 146, in device
+    self.open()
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\network.py", line 105, in open
+    raise DeviceNotFoundError(
+escpos.exceptions.DeviceNotFoundError: Device not found (Could not open socket for 192.168.123.100:
+timed out)
+2026-03-25 10:43:00,220 [INFO] Found 1 pending job(s)
+2026-03-25 10:43:02,440 [INFO] Processing job id=32 name=PRINT-20260325-174259-223280 type=kitchen
+2026-03-25 10:43:02,440 [INFO] Routing printer "Bar" to network 192.168.123.100:9100
+2026-03-25 10:43:03,466 [WARNING] Print attempt 1/2 failed for route "Bar": Device not found (Could not open socket for 192.168.123.100:
+timed out). Retrying...
+2026-03-25 10:43:03,617 [INFO] Routing printer "Bar" to network 192.168.123.100:9100
+2026-03-25 10:43:04,618 [ERROR] Job id=32 FAILED: Device not found (Could not open socket for 192.168.123.100:
+timed out)
+2026-03-25 10:43:06,128 [INFO] Push received: type=kitchen route_printer=Kitchen keys=['data', 'printer_type', 'printer_name']
+2026-03-25 10:43:06,128 [INFO] Routing printer "Kitchen" to network 192.168.123.101:9100
+2026-03-25 10:43:06,129 [INFO] Network printer enabled
+2026-03-25 10:43:06,136 [INFO] Closing Network connection to printer 192.168.123.101
+2026-03-26 09:49:15,607 [INFO] ============================================================
+2026-03-26 09:49:15,607 [INFO] Odoo PoS Print Agent starting...
+2026-03-26 09:49:15,607 [INFO] Mode: network | Poll interval: 0.2s
+2026-03-26 09:49:15,607 [INFO] Odoo: http://localhost:8070 (db=default)
+2026-03-26 09:49:15,607 [INFO] ============================================================
+2026-03-26 09:49:15,607 [INFO] Connecting to Odoo at http://localhost:8070 (db=default)...
+2026-03-26 09:49:18,802 [INFO] Authenticated as uid=2
+2026-03-26 09:49:18,817 [INFO] HTTP push server listening on http://127.0.0.1:8899/print
+2026-03-26 09:49:40,537 [INFO] Push received: type=receipt route_printer=Receipt keys=['data', 'printer_type', 'printer_name']
+2026-03-26 09:49:40,537 [INFO] Routing printer "Receipt" to network 192.168.123.100:9100
+2026-03-26 09:49:41,544 [WARNING] Print attempt 1/2 failed for route "Receipt": Device not found (Could not open socket for 192.168.123.100:
+timed out). Retrying...
+2026-03-26 09:49:41,695 [INFO] Routing printer "Receipt" to network 192.168.123.100:9100
+2026-03-26 09:49:42,698 [ERROR] Push print failed: Device not found (Could not open socket for 192.168.123.100:
+timed out)
+Traceback (most recent call last):
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\network.py", line 100, in open
+    self.device.connect((self.host, self.port))
+TimeoutError: timed out
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 668, in do_POST
+    print_with_route(data, printer_type, route_printer)
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 299, in print_with_route
+    format_receipt(data, printer_type, printer)
+  File "C:\Users\FastTyper\odooprint\print_agent.py", line 421, in format_receipt
+    printer.set(align='center', font='a', bold=True, height=2, width=2)
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\escpos.py", line 974, in set
+    self._raw(TXT_STYLE["bold"][bold])
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\network.py", line 118, in _raw
+    assert self.device
+           ^^^^^^^^^^^
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\escpos.py", line 146, in device
+    self.open()
+  File "C:\Users\FastTyper\AppData\Local\Python\pythoncore-3.11-64\Lib\site-packages\escpos\printer\network.py", line 105, in open
+    raise DeviceNotFoundError(
+escpos.exceptions.DeviceNotFoundError: Device not found (Could not open socket for 192.168.123.100:
+timed out)
+2026-03-26 09:49:43,938 [INFO] Found 1 pending job(s)
+2026-03-26 09:49:46,128 [INFO] Processing job id=33 name=PRINT-20260326-164942-761734 type=receipt
+2026-03-26 09:49:46,128 [INFO] Routing printer "Receipt" to network 192.168.123.100:9100
+2026-03-26 09:49:47,137 [WARNING] Print attempt 1/2 failed for route "Receipt": Device not found (Could not open socket for 192.168.123.100:
+timed out). Retrying...
+2026-03-26 09:49:47,288 [INFO] Routing printer "Receipt" to network 192.168.123.100:9100
+2026-03-26 09:49:48,294 [ERROR] Job id=33 FAILED: Device not found (Could not open socket for 192.168.123.100:
+timed out)
+2026-03-26 09:56:33,245 [INFO] Shutting down (KeyboardInterrupt)
+2026-03-26 09:56:36,966 [INFO] ============================================================
+2026-03-26 09:56:36,981 [INFO] Odoo PoS Print Agent starting...
+2026-03-26 09:56:36,981 [INFO] Mode: network | Poll interval: 0.2s
+2026-03-26 09:56:36,981 [INFO] Odoo: http://localhost:8070 (db=default)
+2026-03-26 09:56:36,981 [INFO] ============================================================
+2026-03-26 09:56:36,981 [INFO] Connecting to Odoo at http://localhost:8070 (db=default)...
+2026-03-26 09:56:40,129 [INFO] Authenticated as uid=2
+2026-03-26 09:56:40,145 [INFO] HTTP push server listening on http://127.0.0.1:8899/print
+2026-03-26 09:56:45,346 [INFO] Push received: type=receipt route_printer=Receipt keys=['data', 'printer_type', 'printer_name']
+2026-03-26 09:56:45,346 [INFO] Routing printer "Receipt" to network 192.168.123.100:9100
+2026-03-26 09:56:45,346 [INFO] Network printer enabled
+2026-03-26 09:56:45,361 [INFO] Closing Network connection to printer 192.168.123.100
+2026-03-26 09:58:36,052 [INFO] Push received: type=receipt route_printer=Receipt keys=['data', 'printer_type', 'printer_name']
+2026-03-26 09:58:36,052 [INFO] Routing printer "Receipt" to network 192.168.123.100:9100
+2026-03-26 09:58:36,052 [INFO] Network printer enabled
+2026-03-26 09:58:36,052 [INFO] Closing Network connection to printer 192.168.123.100
+2026-03-26 09:58:45,056 [INFO] Push received: type=receipt route_printer=Receipt keys=['data', 'printer_type', 'printer_name']
+2026-03-26 09:58:45,056 [INFO] Routing printer "Receipt" to network 192.168.123.100:9100
+2026-03-26 09:58:45,067 [INFO] Network printer enabled
+2026-03-26 09:58:45,067 [INFO] Closing Network connection to printer 192.168.123.100
+2026-03-26 09:58:53,515 [INFO] Push received: type=receipt route_printer=Receipt keys=['data', 'printer_type', 'printer_name']
+2026-03-26 09:58:53,515 [INFO] Routing printer "Receipt" to network 192.168.123.100:9100
+2026-03-26 09:58:53,515 [INFO] Network printer enabled
+2026-03-26 09:58:53,515 [INFO] Closing Network connection to printer 192.168.123.100
+2026-03-26 09:59:00,107 [INFO] Push received: type=receipt route_printer=Receipt keys=['data', 'printer_type', 'printer_name']
+2026-03-26 09:59:00,108 [INFO] Routing printer "Receipt" to network 192.168.123.100:9100
+2026-03-26 09:59:00,109 [INFO] Network printer enabled
+2026-03-26 09:59:00,111 [INFO] Closing Network connection to printer 192.168.123.100
+2026-03-26 09:59:04,632 [INFO] Push received: type=receipt route_printer=Receipt keys=['data', 'printer_type', 'printer_name']
+2026-03-26 09:59:04,633 [INFO] Routing printer "Receipt" to network 192.168.123.100:9100
+2026-03-26 09:59:04,635 [INFO] Network printer enabled
+2026-03-26 09:59:04,635 [INFO] Closing Network connection to printer 192.168.123.100
+2026-03-26 09:59:11,800 [INFO] Push received: type=receipt route_printer=Receipt keys=['data', 'printer_type', 'printer_name']
+2026-03-26 09:59:11,802 [INFO] Routing printer "Receipt" to network 192.168.123.100:9100
+2026-03-26 09:59:11,805 [INFO] Network printer enabled
+2026-03-26 09:59:11,808 [INFO] Closing Network connection to printer 192.168.123.100
+2026-03-26 09:59:16,347 [INFO] Push received: type=receipt route_printer=Receipt keys=['data', 'printer_type', 'printer_name']
+2026-03-26 09:59:16,347 [INFO] Routing printer "Receipt" to network 192.168.123.100:9100
+2026-03-26 09:59:16,363 [INFO] Network printer enabled
+2026-03-26 09:59:16,363 [INFO] Closing Network connection to printer 192.168.123.100
+2026-03-26 09:59:57,245 [INFO] Push received: type=kitchen route_printer=Kitchen keys=['data', 'printer_type', 'printer_name']
+2026-03-26 09:59:57,245 [INFO] Routing printer "Kitchen" to network 192.168.123.101:9100
+2026-03-26 09:59:57,260 [INFO] Network printer enabled
+2026-03-26 09:59:57,261 [INFO] Closing Network connection to printer 192.168.123.101
+2026-03-26 09:59:57,263 [INFO] Push received: type=kitchen route_printer=Bar keys=['data', 'printer_type', 'printer_name']
+2026-03-26 09:59:57,263 [INFO] Routing printer "Bar" to network 192.168.123.100:9100
+2026-03-26 09:59:57,278 [INFO] Network printer enabled
+2026-03-26 09:59:57,278 [INFO] Closing Network connection to printer 192.168.123.100
+2026-03-26 10:04:41,736 [INFO] Push received: type=receipt route_printer=Receipt keys=['data', 'printer_type', 'printer_name']
+2026-03-26 10:04:41,738 [INFO] Routing printer "Receipt" to network 192.168.123.100:9100
+2026-03-26 10:04:41,750 [INFO] Network printer enabled
+2026-03-26 10:04:41,751 [INFO] Closing Network connection to printer 192.168.123.100
+2026-03-26 10:06:45,256 [INFO] Push received: type=kitchen route_printer=Kitchen keys=['data', 'printer_type', 'printer_name']
+2026-03-26 10:06:45,256 [INFO] Routing printer "Kitchen" to network 192.168.123.101:9100
+2026-03-26 10:06:45,256 [INFO] Network printer enabled
+2026-03-26 10:06:45,272 [INFO] Closing Network connection to printer 192.168.123.101
+2026-03-26 10:06:45,273 [INFO] Push received: type=kitchen route_printer=Bar keys=['data', 'printer_type', 'printer_name']
+2026-03-26 10:06:45,273 [INFO] Routing printer "Bar" to network 192.168.123.100:9100
+2026-03-26 10:06:45,288 [INFO] Network printer enabled
+2026-03-26 10:06:45,290 [INFO] Closing Network connection to printer 192.168.123.100
+2026-03-26 10:15:09,661 [WARNING] Network error during XML-RPC call: [WinError 10061] No connection could be made because the target machine actively refused it. Reconnecting...
+2026-03-26 10:15:09,661 [INFO] Connecting to Odoo at http://localhost:8070 (db=default)...
+2026-03-26 10:15:13,711 [ERROR] Odoo connection error: [WinError 10061] No connection could be made because the target machine actively refused it. Retrying in 10s...
+2026-03-26 10:15:23,729 [INFO] Connecting to Odoo at http://localhost:8070 (db=default)...
+2026-03-26 10:15:27,206 [INFO] Authenticated as uid=2
+2026-03-26 10:15:35,092 [INFO] Shutting down (KeyboardInterrupt)
+2026-03-26 10:15:52,230 [INFO] ============================================================
+2026-03-26 10:15:52,230 [INFO] Odoo PoS Print Agent starting...
+2026-03-26 10:15:52,230 [INFO] Mode: network | Poll interval: 0.2s
+2026-03-26 10:15:52,231 [INFO] Odoo: http://localhost:8070 (db=default)
+2026-03-26 10:15:52,231 [INFO] ============================================================
+2026-03-26 10:15:52,231 [INFO] Connecting to Odoo at http://localhost:8070 (db=default)...
+2026-03-26 10:15:56,274 [INFO] Authenticated as uid=2
+2026-03-26 10:15:56,274 [INFO] HTTP push server listening on http://127.0.0.1:8899/print
+2026-03-26 10:16:22,255 [INFO] Push received: type=receipt route_printer=Receipt keys=['data', 'printer_type', 'printer_name']
+2026-03-26 10:16:22,255 [INFO] Routing printer "Receipt" to network 192.168.123.100:9100
+2026-03-26 10:16:22,255 [INFO] Network printer enabled
+2026-03-26 10:16:22,272 [INFO] Closing Network connection to printer 192.168.123.100
+2026-03-26 10:19:34,588 [INFO] Push received: type=kitchen route_printer=Kitchen keys=['data', 'printer_type', 'printer_name']
+2026-03-26 10:19:34,588 [INFO] Routing printer "Kitchen" to network 192.168.123.101:9100
+2026-03-26 10:19:34,604 [INFO] Network printer enabled
+2026-03-26 10:19:34,604 [INFO] Closing Network connection to printer 192.168.123.101
+2026-03-26 10:19:34,604 [INFO] Push received: type=kitchen route_printer=Bar keys=['data', 'printer_type', 'printer_name']
+2026-03-26 10:19:34,604 [INFO] Routing printer "Bar" to network 192.168.123.100:9100
+2026-03-26 10:19:34,604 [INFO] Network printer enabled
+2026-03-26 10:19:34,604 [INFO] Closing Network connection to printer 192.168.123.100
+2026-03-26 10:20:00,018 [INFO] Push received: type=receipt route_printer=Receipt keys=['data', 'printer_type', 'printer_name']
+2026-03-26 10:20:00,018 [INFO] Routing printer "Receipt" to network 192.168.123.100:9100
+2026-03-26 10:20:00,034 [INFO] Network printer enabled
+2026-03-26 10:20:00,036 [INFO] Closing Network connection to printer 192.168.123.100
+2026-03-26 10:21:18,886 [INFO] Push received: type=kitchen route_printer=Kitchen keys=['data', 'printer_type', 'printer_name']
+2026-03-26 10:21:18,886 [INFO] Routing printer "Kitchen" to network 192.168.123.101:9100
+2026-03-26 10:21:18,897 [INFO] Network printer enabled
+2026-03-26 10:21:18,897 [INFO] Closing Network connection to printer 192.168.123.101
+2026-03-26 10:21:18,897 [INFO] Push received: type=kitchen route_printer=Bar keys=['data', 'printer_type', 'printer_name']
+2026-03-26 10:21:18,897 [INFO] Routing printer "Bar" to network 192.168.123.100:9100
+2026-03-26 10:21:18,897 [INFO] Network printer enabled
+2026-03-26 10:21:18,897 [INFO] Closing Network connection to printer 192.168.123.100
+2026-03-26 10:27:32,131 [INFO] Push received: type=receipt route_printer=Receipt keys=['data', 'printer_type', 'printer_name']
+2026-03-26 10:27:32,131 [INFO] Routing printer "Receipt" to network 192.168.123.100:9100
+2026-03-26 10:27:32,144 [INFO] Network printer enabled
+2026-03-26 10:27:32,145 [INFO] Closing Network connection to printer 192.168.123.100
+2026-03-26 10:33:17,115 [INFO] Push received: type=kitchen route_printer=Kitchen keys=['data', 'printer_type', 'printer_name']
+2026-03-26 10:33:17,115 [INFO] Routing printer "Kitchen" to network 192.168.123.101:9100
+2026-03-26 10:33:17,116 [INFO] Network printer enabled
+2026-03-26 10:33:17,117 [INFO] Closing Network connection to printer 192.168.123.101
+2026-03-26 10:33:17,117 [INFO] Push received: type=kitchen route_printer=Bar keys=['data', 'printer_type', 'printer_name']
+2026-03-26 10:33:17,117 [INFO] Routing printer "Bar" to network 192.168.123.100:9100
+2026-03-26 10:33:17,133 [INFO] Network printer enabled
+2026-03-26 10:33:17,133 [INFO] Closing Network connection to printer 192.168.123.100
+2026-03-26 10:34:22,217 [INFO] Push received: type=receipt route_printer=Receipt keys=['data', 'printer_type', 'printer_name']
+2026-03-26 10:34:22,217 [INFO] Routing printer "Receipt" to network 192.168.123.100:9100
+2026-03-26 10:34:22,241 [INFO] Network printer enabled
+2026-03-26 10:34:22,241 [INFO] Closing Network connection to printer 192.168.123.100

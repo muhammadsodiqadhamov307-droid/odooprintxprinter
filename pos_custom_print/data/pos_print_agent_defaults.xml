@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="pos_print_agent_config_default" model="pos.print.agent.config">
+            <field name="name">Default</field>
+            <field name="active">True</field>
+            <field name="poll_interval_sec">0.2</field>
+            <field name="agent_odoo_url">http://localhost:8070</field>
+            <field name="agent_odoo_db">default</field>
+            <field name="agent_odoo_username">admin</field>
+            <field name="agent_odoo_password">password</field>
+            <field name="default_mode">network</field>
+            <field name="default_network_ip">192.168.123.100</field>
+            <field name="default_network_port">9100</field>
+            <field name="default_usb_vendor_id">8137</field>
+            <field name="default_usb_product_id">8214</field>
+            <field name="default_timeout_sec">1.0</field>
+            <field name="default_retries">2</field>
+            <field name="default_cooldown_sec">3.0</field>
+        </record>
+
+        <record id="pos_print_agent_route_receipt" model="pos.print.agent.route">
+            <field name="config_id" ref="pos_print_agent_config_default"/>
+            <field name="sequence">10</field>
+            <field name="active">True</field>
+            <field name="name">Receipt</field>
+            <field name="mode">network</field>
+            <field name="network_ip">192.168.123.100</field>
+            <field name="network_port">9100</field>
+            <field name="timeout_sec">1.0</field>
+            <field name="retries">2</field>
+            <field name="cooldown_sec">3.0</field>
+        </record>
+
+        <record id="pos_print_agent_route_kitchen" model="pos.print.agent.route">
+            <field name="config_id" ref="pos_print_agent_config_default"/>
+            <field name="sequence">20</field>
+            <field name="active">True</field>
+            <field name="name">Kitchen</field>
+            <field name="mode">network</field>
+            <field name="network_ip">192.168.123.101</field>
+            <field name="network_port">9100</field>
+            <field name="timeout_sec">1.0</field>
+            <field name="retries">2</field>
+            <field name="cooldown_sec">3.0</field>
+        </record>
+
+        <record id="pos_print_agent_route_bar" model="pos.print.agent.route">
+            <field name="config_id" ref="pos_print_agent_config_default"/>
+            <field name="sequence">30</field>
+            <field name="active">True</field>
+            <field name="name">Bar</field>
+            <field name="mode">network</field>
+            <field name="network_ip">192.168.123.100</field>
+            <field name="network_port">9100</field>
+            <field name="timeout_sec">1.0</field>
+            <field name="retries">2</field>
+            <field name="cooldown_sec">3.0</field>
+        </record>
+    </data>
+</odoo>
