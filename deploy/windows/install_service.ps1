@@ -42,6 +42,29 @@ function Find-Nssm {
     throw "nssm.exe was not found. Put it at deploy\windows\tools\nssm.exe or install NSSM to PATH."
 }
 
+function Test-PythonExe {
+    param([string]$ExePath)
+    if (-not $ExePath -or -not (Test-Path -LiteralPath $ExePath)) {
+        return $false
+    }
+    try {
+        $out = (& $ExePath -c "import sys; print(sys.version); print(sys.executable)" 2>&1 | Out-String).Trim()
+        $code = $LASTEXITCODE
+        if ($code -ne 0) {
+            return $false
+        }
+        if ($out -notmatch '\d+\.\d+\.\d+') {
+            return $false
+        }
+        if ($out -match 'WindowsApps\\python\.exe') {
+            return $false
+        }
+        return $true
+    } catch {
+        return $false
+    }
+}
+
 function Get-InstalledPythonExe {
     param([string]$Version)
 
@@ -49,13 +72,13 @@ function Get-InstalledPythonExe {
     if ($py) {
         try {
             $exe = (& $py.Path -$Version -c "import sys; print(sys.executable)").Trim()
-            if ($exe -and (Test-Path -LiteralPath $exe)) {
+            if ($exe -and (Test-PythonExe -ExePath $exe)) {
                 return (Resolve-Path -LiteralPath $exe).Path
             }
         } catch {}
         try {
             $exe = (& $py.Path -3 -c "import sys; print(sys.executable)").Trim()
-            if ($exe -and (Test-Path -LiteralPath $exe)) {
+            if ($exe -and (Test-PythonExe -ExePath $exe)) {
                 return (Resolve-Path -LiteralPath $exe).Path
             }
         } catch {}
@@ -63,10 +86,9 @@ function Get-InstalledPythonExe {
 
     $python = Get-Command python.exe -ErrorAction SilentlyContinue
     if ($python) {
-        try {
-            & $python.Path -c "import sys; print(sys.version)" | Out-Host
+        if (Test-PythonExe -ExePath $python.Path) {
             return (Resolve-Path -LiteralPath $python.Path).Path
-        } catch {}
+        }
     }
 
     $verNoDot = $Version.Replace('.', '')
@@ -78,11 +100,8 @@ function Get-InstalledPythonExe {
         "$env:LOCALAPPDATA\Python\pythoncore-$Version-32\python.exe"
     )
     foreach ($candidate in $candidates) {
-        if (Test-Path -LiteralPath $candidate) {
-            try {
-                & $candidate -c "import sys; print(sys.version)" | Out-Host
-                return (Resolve-Path -LiteralPath $candidate).Path
-            } catch {}
+        if (Test-PythonExe -ExePath $candidate) {
+            return (Resolve-Path -LiteralPath $candidate).Path
         }
     }
     return $null
@@ -110,6 +129,7 @@ function Ensure-Python {
         "--id", "Python.Python.$Version",
         "--exact",
         "--source", "winget",
+        "--scope", "machine",
         "--accept-source-agreements",
         "--accept-package-agreements"
     )
@@ -120,6 +140,17 @@ function Ensure-Python {
         & $winget.Path source reset --force | Out-Host
         & $winget.Path source update | Out-Host
         & $winget.Path @installArgs | Out-Host
+        if ($LASTEXITCODE -ne 0) {
+            $fallbackArgs = @(
+                "install",
+                "--id", "Python.Python.$Version",
+                "--exact",
+                "--source", "winget",
+                "--accept-source-agreements",
+                "--accept-package-agreements"
+            )
+            & $winget.Path @fallbackArgs | Out-Host
+        }
     }
 
     Start-Sleep -Seconds 2
@@ -141,7 +172,10 @@ function Ensure-Venv {
 
     if (-not (Test-Path -LiteralPath $venvPython)) {
         Write-Step "Creating local virtual environment"
-        & $BasePythonExe -m venv $venvDir | Out-Host
+        & $BasePythonExe -m venv $venvDir 2>&1 | Out-Host
+        if ($LASTEXITCODE -ne 0) {
+            throw "Python failed while creating virtual environment (exit code $LASTEXITCODE) at $venvDir"
+        }
     }
 
     if (-not (Test-Path -LiteralPath $venvPython)) {
