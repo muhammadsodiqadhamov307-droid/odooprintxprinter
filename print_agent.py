@@ -9,23 +9,26 @@ to an Xprinter XP-80 via network TCP or USB.
 Requirements: see requirements.txt
 Run: python print_agent.py
 """
+import os
 
 # ============================================================================
 # BOOTSTRAP / FALLBACK CONFIGURATION
 # ============================================================================
-# In normal operation, Odoo UI config is authoritative.
-# Values below are only for first connection and safety fallback.
-# You can override them via environment variables (no file edit needed).
+# Values below are bootstrap defaults for first run.
+# After first run, local app config file is authoritative.
+# You can still override via environment variables if needed.
 
 ODOO_URL = os.getenv('POS_PRINT_BOOTSTRAP_ODOO_URL', 'http://localhost:8070')
 ODOO_DB = os.getenv('POS_PRINT_BOOTSTRAP_ODOO_DB', 'default')
 ODOO_USERNAME = os.getenv('POS_PRINT_BOOTSTRAP_ODOO_USERNAME', 'admin')
 ODOO_PASSWORD = os.getenv('POS_PRINT_BOOTSTRAP_ODOO_PASSWORD', 'password')
 
-# Agent refreshes config from Odoo at runtime (no restart needed for route edits)
+USE_ODOO_REMOTE_CONFIG = os.getenv('POS_PRINT_USE_ODOO_REMOTE_CONFIG', '0').lower() in ('1', 'true', 'yes')
 REMOTE_CONFIG_REFRESH_SEC = float(os.getenv('POS_PRINT_REMOTE_CONFIG_REFRESH_SEC', '3.0'))
+LOCAL_CONFIG_FILE = os.getenv('POS_PRINT_LOCAL_CONFIG_FILE', 'agent_config.local.json')
+WINDOWS_REGISTRY_PATH = os.getenv('POS_PRINT_REGISTRY_PATH', r'Software\OdooPrintAgent')
 
-POLL_INTERVAL_SEC = float(os.getenv('POS_PRINT_FALLBACK_POLL_INTERVAL_SEC', '0.2'))
+POLL_INTERVAL_SEC = float(os.getenv('POS_PRINT_POLL_INTERVAL_SEC', '0.2'))
 
 PRINTER_MODE = os.getenv('POS_PRINT_FALLBACK_MODE', 'network')  # default fallback
 PRINTER_NETWORK_IP = os.getenv('POS_PRINT_FALLBACK_NETWORK_IP', '192.168.123.100')
@@ -55,7 +58,6 @@ LOG_FILE = 'print_agent.log'  # Set to None to log to stdout only
 # ============================================================================
 import json
 import logging
-import os
 import socket
 import sys
 import time
@@ -63,11 +65,17 @@ import xmlrpc.client
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import threading
+from urllib.parse import urlparse
 
 try:
     import libusb_package
 except ImportError:
     libusb_package = None
+
+try:
+    import winreg
+except ImportError:
+    winreg = None
 
 try:
     from escpos import exceptions as EscExceptions
@@ -83,6 +91,7 @@ logger = logging.getLogger('PrintAgent')
 _printer_cache = None
 _route_fail_until = {}
 _runtime_lock = threading.RLock()
+_last_odoo_unavailable_log_ts = 0.0
 
 _runtime_config = {
     'poll_interval_sec': POLL_INTERVAL_SEC,
@@ -123,6 +132,146 @@ def setup_logging():
         force=True,
     )
     logger.setLevel(level)
+
+
+def _config_file_path():
+    if os.path.isabs(LOCAL_CONFIG_FILE):
+        return LOCAL_CONFIG_FILE
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), LOCAL_CONFIG_FILE)
+
+
+def _runtime_snapshot():
+    with _runtime_lock:
+        return json.loads(json.dumps(_runtime_config))
+
+
+def _sanitize_runtime_payload(payload):
+    if not isinstance(payload, dict):
+        return None
+
+    clean = {}
+    if isinstance(payload.get('poll_interval_sec'), (int, float, str)):
+        clean['poll_interval_sec'] = _as_float(payload.get('poll_interval_sec'), POLL_INTERVAL_SEC)
+
+    default_cfg = payload.get('default')
+    if isinstance(default_cfg, dict):
+        clean['default'] = {
+            'mode': default_cfg.get('mode', PRINTER_MODE),
+            'ip': str(default_cfg.get('ip', PRINTER_NETWORK_IP) or ''),
+            'port': _as_int(default_cfg.get('port', PRINTER_NETWORK_PORT), PRINTER_NETWORK_PORT),
+            'usb_vendor_id': _as_int(default_cfg.get('usb_vendor_id', PRINTER_USB_VENDOR_ID), PRINTER_USB_VENDOR_ID),
+            'usb_product_id': _as_int(default_cfg.get('usb_product_id', PRINTER_USB_PRODUCT_ID), PRINTER_USB_PRODUCT_ID),
+            'timeout_sec': _as_float(default_cfg.get('timeout_sec', DEFAULT_NETWORK_TIMEOUT_SEC), DEFAULT_NETWORK_TIMEOUT_SEC),
+            'retries': _as_int(default_cfg.get('retries', DEFAULT_NETWORK_RETRIES), DEFAULT_NETWORK_RETRIES),
+            'cooldown_sec': _as_float(default_cfg.get('cooldown_sec', DEFAULT_ROUTE_COOLDOWN_SEC), DEFAULT_ROUTE_COOLDOWN_SEC),
+        }
+
+    odoo_cfg = payload.get('odoo')
+    if isinstance(odoo_cfg, dict):
+        clean['odoo'] = {
+            'url': str(odoo_cfg.get('url', ODOO_URL) or ''),
+            'db': str(odoo_cfg.get('db', ODOO_DB) or ''),
+            'username': str(odoo_cfg.get('username', ODOO_USERNAME) or ''),
+            'password': str(odoo_cfg.get('password', ODOO_PASSWORD) or ''),
+        }
+
+    routes_cfg = payload.get('routes')
+    if isinstance(routes_cfg, dict):
+        clean_routes = {}
+        for raw_name, raw_route in routes_cfg.items():
+            name = str(raw_name or '').strip()
+            if not name or not isinstance(raw_route, dict):
+                continue
+            clean_routes[name] = {
+                'mode': raw_route.get('mode', PRINTER_MODE),
+                'ip': str(raw_route.get('ip', '') or ''),
+                'port': _as_int(raw_route.get('port', PRINTER_NETWORK_PORT), PRINTER_NETWORK_PORT),
+                'usb_vendor_id': _as_int(raw_route.get('usb_vendor_id', PRINTER_USB_VENDOR_ID), PRINTER_USB_VENDOR_ID),
+                'usb_product_id': _as_int(raw_route.get('usb_product_id', PRINTER_USB_PRODUCT_ID), PRINTER_USB_PRODUCT_ID),
+                'timeout_sec': _as_float(raw_route.get('timeout_sec', DEFAULT_NETWORK_TIMEOUT_SEC), DEFAULT_NETWORK_TIMEOUT_SEC),
+                'retries': _as_int(raw_route.get('retries', DEFAULT_NETWORK_RETRIES), DEFAULT_NETWORK_RETRIES),
+                'cooldown_sec': _as_float(raw_route.get('cooldown_sec', DEFAULT_ROUTE_COOLDOWN_SEC), DEFAULT_ROUTE_COOLDOWN_SEC),
+            }
+        clean['routes'] = clean_routes
+
+    return clean
+
+
+def save_local_config(payload):
+    clean = _sanitize_runtime_payload(payload)
+    if clean is None:
+        raise ValueError('Invalid configuration payload')
+    json_value = json.dumps(clean, ensure_ascii=True)
+
+    if winreg is not None:
+        key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, WINDOWS_REGISTRY_PATH)
+        winreg.SetValueEx(key, 'ConfigJson', 0, winreg.REG_SZ, json_value)
+        winreg.CloseKey(key)
+        return f'HKCU\\{WINDOWS_REGISTRY_PATH}'
+
+    path = _config_file_path()
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write(json_value)
+    return path
+
+
+def load_local_config():
+    if winreg is not None:
+        try:
+            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, WINDOWS_REGISTRY_PATH)
+            raw, _typ = winreg.QueryValueEx(key, 'ConfigJson')
+            winreg.CloseKey(key)
+            payload = json.loads(raw)
+            clean = _sanitize_runtime_payload(payload)
+            if clean:
+                changed = _apply_remote_config_payload(clean)
+                if changed:
+                    logger.info('Loaded local config from registry HKCU\\%s', WINDOWS_REGISTRY_PATH)
+                return changed
+            return False
+        except FileNotFoundError:
+            return False
+        except Exception as exc:  # noqa: BLE001
+            logger.error('Failed to load local config from registry: %s', exc)
+            return False
+
+    path = _config_file_path()
+    if not os.path.exists(path):
+        return False
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            payload = json.load(f)
+        clean = _sanitize_runtime_payload(payload)
+        if clean:
+            changed = _apply_remote_config_payload(clean)
+            if changed:
+                logger.info('Loaded local config from %s', path)
+            return changed
+    except Exception as exc:  # noqa: BLE001
+        logger.error('Failed to load local config %s: %s', path, exc)
+    return False
+
+
+def _trigger_self_restart(delay_sec=0.8):
+    def _do_restart():
+        time.sleep(delay_sec)
+        logger.warning('Restart requested from control API. Restarting process...')
+        python = sys.executable
+        os.execl(python, python, *sys.argv)
+    threading.Thread(target=_do_restart, daemon=True).start()
+
+
+def _read_log_tail(max_lines=200):
+    path = LOG_FILE
+    if not path:
+        return ''
+    if not os.path.isabs(path):
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), path)
+    if not os.path.exists(path):
+        return ''
+    with open(path, 'r', encoding='utf-8', errors='replace') as f:
+        lines = f.readlines()
+    return ''.join(lines[-max(1, int(max_lines)):])
 
 
 def _runtime_poll_interval():
@@ -259,7 +408,9 @@ class OdooConnection:
         self.active_password = None
         self.uid = None
         self.models = None
-        self._connect()
+        # Do a non-blocking startup attempt so local HTTP API can come up even
+        # if Odoo is temporarily unavailable or credentials are wrong.
+        self._connect(retry_forever=False)
 
     def _connect(self, retry_forever=True):
         """Authenticate and store uid + models proxy."""
@@ -301,6 +452,11 @@ class OdooConnection:
                     return False
                 logger.error('Odoo connection error: %s. Retrying in 10s...', e)
                 time.sleep(10)
+
+    def ensure_connected(self, retry_forever=False):
+        if self.models and self.uid and self.active_db and self.active_password:
+            return True
+        return self._connect(retry_forever=retry_forever)
 
     def apply_remote_odoo_settings(self, odoo_settings):
         """
@@ -345,6 +501,11 @@ class OdooConnection:
         Execute an XML-RPC call. On failure, reconnects once and retries.
         Returns the result or raises the exception.
         """
+        if not self.ensure_connected(retry_forever=False):
+            raise ConnectionError(
+                f'Odoo not connected ({self.desired_url}, db={self.desired_db}). '
+                'Check Odoo URL/database/user/password.'
+            )
         try:
             return self.models.execute_kw(
                 self.active_db,
@@ -360,7 +521,10 @@ class OdooConnection:
             raise
         except (socket.timeout, ConnectionRefusedError, OSError) as e:
             logger.warning('Network error during XML-RPC call: %s. Reconnecting...', e)
-            self._connect()
+            self.models = None
+            self.uid = None
+            if not self._connect(retry_forever=False):
+                raise
             return self.models.execute_kw(
                 self.active_db,
                 self.uid,
@@ -489,6 +653,15 @@ def print_with_route(data: str, printer_type: str, printer_name=None) -> None:
     does not block all other routes.
     """
     route_name, route = _resolve_route(printer_name)
+    # Business rule: default fallback is only for customer receipts.
+    # Kitchen/order tickets must have an explicit route configured.
+    if printer_type != 'receipt' and not route:
+        target = route_name or printer_name or 'unmapped'
+        raise RuntimeError(
+            f'No explicit printer route configured for "{target}". '
+            'Default fallback is reserved for receipt printing only.'
+        )
+
     mode = route.get('mode', _runtime_default_value('mode', PRINTER_MODE))
 
     timeout_sec = _as_float(
@@ -842,6 +1015,16 @@ def process_pending_jobs(odoo: OdooConnection) -> None:
     Fetch all pending jobs from Odoo, print each one, then update the state to
     'printed' or 'failed'.
     """
+    global _last_odoo_unavailable_log_ts
+    if not odoo.ensure_connected(retry_forever=False):
+        now = time.monotonic()
+        if (now - _last_odoo_unavailable_log_ts) >= 10.0:
+            logger.warning(
+                'Odoo is not connected. Agent API is online; update connection from Manager and restart agent.'
+            )
+            _last_odoo_unavailable_log_ts = now
+        return
+
     pending_ids = odoo.execute(
         'pos.print.job',
         'search',
@@ -915,6 +1098,7 @@ def process_pending_jobs(odoo: OdooConnection) -> None:
 # ============================================================================
 def main():
     setup_logging()
+    load_local_config()
     runtime_odoo = _runtime_odoo_settings()
     startup_url = runtime_odoo.get('url') or ODOO_URL
     startup_db = runtime_odoo.get('db') or ODOO_DB
@@ -925,7 +1109,8 @@ def main():
     logger.info('=' * 60)
 
     odoo = OdooConnection()
-    refresh_runtime_config(odoo, force=True)
+    if USE_ODOO_REMOTE_CONFIG:
+        refresh_runtime_config(odoo, force=True)
 
     # Start local HTTP push server for immediate print
     def start_http_server():
@@ -933,52 +1118,121 @@ def main():
         port = 8899
 
         class PrintHandler(BaseHTTPRequestHandler):
+            def log_message(self, format, *args):
+                logger.debug('HTTP %s', format % args)
+
             def _set_headers(self, status=200):
                 self.send_response(status)
                 self.send_header('Content-Type', 'application/json')
                 self.send_header('Access-Control-Allow-Origin', '*')
-                self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
+                self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
                 self.send_header('Access-Control-Allow-Headers', 'Content-Type')
                 self.end_headers()
+
+            def _write_json(self, status, payload):
+                self._set_headers(status)
+                self.wfile.write(json.dumps(payload).encode('utf-8'))
+
+            def _read_json_body(self):
+                length = int(self.headers.get('Content-Length', 0))
+                payload = self.rfile.read(length) if length else b'{}'
+                return json.loads(payload.decode('utf-8'))
 
             def do_OPTIONS(self):
                 self._set_headers()
 
+            def do_GET(self):
+                try:
+                    path = urlparse(self.path).path
+                    if path == '/health':
+                        self._write_json(200, {'success': True, 'status': 'ok'})
+                        return
+                    if path == '/api/config':
+                        self._write_json(200, {'success': True, 'config': _runtime_snapshot()})
+                        return
+                    if path == '/api/logs':
+                        self._write_json(200, {'success': True, 'log_tail': _read_log_tail(300)})
+                        return
+                    self._write_json(404, {'success': False, 'error': 'not found'})
+                except Exception as exc:  # noqa: BLE001
+                    logger.error('HTTP GET error: %s', exc, exc_info=True)
+                    self._write_json(500, {'success': False, 'error': str(exc)})
+
             def do_POST(self):
                 try:
-                    length = int(self.headers.get('Content-Length', 0))
-                    payload = self.rfile.read(length) if length else b'{}'
-                    body = json.loads(payload.decode('utf-8'))
-                    data = body.get('data', '')
-                    printer_type = body.get('printer_type', 'receipt')
-                    route_printer = _resolve_printer_name(body)
-                    logger.info('Push received: type=%s route_printer=%s keys=%s', printer_type, route_printer, list(body.keys()))
-                    if not data:
-                        self._set_headers(400)
-                        self.wfile.write(b'{"success":false,"error":"no data"}')
+                    path = urlparse(self.path).path
+                    body = self._read_json_body()
+
+                    if path == '/api/config':
+                        target = body.get('config', body)
+                        saved_to = save_local_config(target)
+                        _apply_remote_config_payload(_sanitize_runtime_payload(target) or {})
+                        odoo.apply_remote_odoo_settings(_runtime_odoo_settings())
+                        self._write_json(200, {'success': True, 'saved_to': saved_to, 'config': _runtime_snapshot()})
                         return
-                    try:
-                        print_with_route(data, printer_type, route_printer)
-                        self._set_headers(200)
-                        self.wfile.write(b'{"success":true}')
-                    except Exception as exc:  # noqa: BLE001
-                        logger.error('Push print failed: %s', exc, exc_info=True)
-                        self._set_headers(500)
-                        self.wfile.write(json.dumps({"success": False, "error": str(exc)}).encode('utf-8'))
+
+                    if path == '/api/test-print':
+                        route_printer = body.get('printer_name') or body.get('route_printer') or 'Receipt'
+                        printer_type = body.get('printer_type', 'receipt')
+                        test_payload = {
+                            'type': 'receipt' if printer_type == 'receipt' else 'kitchen',
+                            'company_name': 'Odoo Print Agent',
+                            'order_name': 'TEST',
+                            'tracking_number': 'TEST-001',
+                            'cashier': 'Agent',
+                            'date': datetime.now().isoformat(),
+                            'table': body.get('table') or '',
+                            'customer_count': body.get('customer_count') or '',
+                            'printer_name': route_printer,
+                            'currency_symbol': '',
+                            'subtotal': 0,
+                            'tax': 0,
+                            'total': 0,
+                            'payments': [],
+                            'lines': [{'name': body.get('text') or 'Test line', 'qty': 1, 'price': 0, 'price_display': '', 'unit_price_display': ''}],
+                            'changes': {'new': [{'qty': 1, 'product': body.get('text') or 'Test kitchen line', 'note': ''}]},
+                            'order': 'TEST',
+                        }
+                        print_with_route(json.dumps(test_payload), printer_type, route_printer)
+                        self._write_json(200, {'success': True})
+                        return
+
+                    if path == '/api/restart':
+                        _trigger_self_restart()
+                        self._write_json(200, {'success': True, 'message': 'restart scheduled'})
+                        return
+
+                    if path == '/print':
+                        data = body.get('data', '')
+                        printer_type = body.get('printer_type', 'receipt')
+                        route_printer = _resolve_printer_name(body)
+                        logger.info('Push received: type=%s route_printer=%s keys=%s', printer_type, route_printer, list(body.keys()))
+                        if not data:
+                            self._write_json(400, {'success': False, 'error': 'no data'})
+                            return
+                        try:
+                            print_with_route(data, printer_type, route_printer)
+                            self._write_json(200, {'success': True})
+                        except Exception as exc:  # noqa: BLE001
+                            logger.error('Push print failed: %s', exc, exc_info=True)
+                            self._write_json(500, {'success': False, 'error': str(exc)})
+                        return
+
+                    self._write_json(404, {'success': False, 'error': 'not found'})
                 except Exception as exc:  # noqa: BLE001
                     logger.error('HTTP handler error: %s', exc, exc_info=True)
-                    self._set_headers(500)
-                    self.wfile.write(json.dumps({"success": False, "error": str(exc)}).encode('utf-8'))
+                    self._write_json(500, {'success': False, 'error': str(exc)})
 
         httpd = ThreadingHTTPServer((host, port), PrintHandler)
-        logger.info('HTTP push server listening on http://%s:%s/print', host, port)
+        logger.info('HTTP server listening on http://%s:%s (push=/print, config=/api/config, test=/api/test-print)', host, port)
         httpd.serve_forever()
 
     threading.Thread(target=start_http_server, daemon=True).start()
 
     while True:
         try:
-            refresh_runtime_config(odoo)
+            if USE_ODOO_REMOTE_CONFIG:
+                refresh_runtime_config(odoo)
             process_pending_jobs(odoo)
         except KeyboardInterrupt:
             logger.info('Shutting down (KeyboardInterrupt)')
