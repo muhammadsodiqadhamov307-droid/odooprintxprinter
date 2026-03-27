@@ -42,16 +42,61 @@ function Find-Nssm {
     throw "nssm.exe was not found. Put it at deploy\windows\tools\nssm.exe or install NSSM to PATH."
 }
 
-function Ensure-Python {
+function Get-InstalledPythonExe {
     param([string]$Version)
+
     $py = Get-Command py.exe -ErrorAction SilentlyContinue
     if ($py) {
-        & py -$Version -c "import sys; print(sys.version)" | Out-Host
-        return
+        try {
+            $exe = (& $py.Path -$Version -c "import sys; print(sys.executable)").Trim()
+            if ($exe -and (Test-Path -LiteralPath $exe)) {
+                return (Resolve-Path -LiteralPath $exe).Path
+            }
+        } catch {}
+        try {
+            $exe = (& $py.Path -3 -c "import sys; print(sys.executable)").Trim()
+            if ($exe -and (Test-Path -LiteralPath $exe)) {
+                return (Resolve-Path -LiteralPath $exe).Path
+            }
+        } catch {}
+    }
+
+    $python = Get-Command python.exe -ErrorAction SilentlyContinue
+    if ($python) {
+        try {
+            & $python.Path -c "import sys; print(sys.version)" | Out-Host
+            return (Resolve-Path -LiteralPath $python.Path).Path
+        } catch {}
+    }
+
+    $verNoDot = $Version.Replace('.', '')
+    $candidates = @(
+        "$env:LOCALAPPDATA\Programs\Python\Python$verNoDot\python.exe",
+        "$env:ProgramFiles\Python$verNoDot\python.exe",
+        "$env:ProgramFiles\Python\Python$verNoDot\python.exe",
+        "$env:LOCALAPPDATA\Python\pythoncore-$Version-64\python.exe",
+        "$env:LOCALAPPDATA\Python\pythoncore-$Version-32\python.exe"
+    )
+    foreach ($candidate in $candidates) {
+        if (Test-Path -LiteralPath $candidate) {
+            try {
+                & $candidate -c "import sys; print(sys.version)" | Out-Host
+                return (Resolve-Path -LiteralPath $candidate).Path
+            } catch {}
+        }
+    }
+    return $null
+}
+
+function Ensure-Python {
+    param([string]$Version)
+    $existing = Get-InstalledPythonExe -Version $Version
+    if ($existing) {
+        return $existing
     }
 
     if (-not $AutoInstallPython) {
-        throw "Python launcher 'py.exe' is not installed. Re-run with -AutoInstallPython to install automatically."
+        throw "Python is not installed. Re-run with -AutoInstallPython to install automatically."
     }
 
     Write-Step "Python not found. Installing Python via winget"
@@ -60,20 +105,34 @@ function Ensure-Python {
         throw "winget is not available. Install Python manually, then rerun."
     }
 
-    & winget install --id Python.Python.3.11 -e --accept-source-agreements --accept-package-agreements
-    Start-Sleep -Seconds 2
-
-    $py = Get-Command py.exe -ErrorAction SilentlyContinue
-    if (-not $py) {
-        throw "Python install finished but py.exe is still unavailable. Reopen terminal and rerun."
+    $installArgs = @(
+        "install",
+        "--id", "Python.Python.$Version",
+        "--exact",
+        "--source", "winget",
+        "--accept-source-agreements",
+        "--accept-package-agreements"
+    )
+    & $winget.Path @installArgs | Out-Host
+    $firstExit = $LASTEXITCODE
+    if ($firstExit -ne 0) {
+        Write-Step "winget install failed (exit code $firstExit). Resetting winget sources and retrying"
+        & $winget.Path source reset --force | Out-Host
+        & $winget.Path source update | Out-Host
+        & $winget.Path @installArgs | Out-Host
     }
 
-    & py -$Version -c "import sys; print(sys.version)" | Out-Host
+    Start-Sleep -Seconds 2
+    $installed = Get-InstalledPythonExe -Version $Version
+    if (-not $installed) {
+        throw "Python install did not complete successfully. Install Python $Version manually, then rerun setup."
+    }
+    return $installed
 }
 
 function Ensure-Venv {
     param(
-        [string]$Version,
+        [string]$BasePythonExe,
         [string]$Root,
         [switch]$SkipPip
     )
@@ -82,7 +141,7 @@ function Ensure-Venv {
 
     if (-not (Test-Path -LiteralPath $venvPython)) {
         Write-Step "Creating local virtual environment"
-        & py -$Version -m venv $venvDir | Out-Host
+        & $BasePythonExe -m venv $venvDir | Out-Host
     }
 
     if (-not (Test-Path -LiteralPath $venvPython)) {
@@ -152,8 +211,8 @@ if (-not (Test-Path -LiteralPath $agentPath)) {
 }
 
 Write-Step "Checking Python"
-Ensure-Python -Version $PythonVersion
-$pythonExe = Ensure-Venv -Version $PythonVersion -Root $root -SkipPip:$SkipPipInstall
+$basePythonExe = Ensure-Python -Version $PythonVersion
+$pythonExe = Ensure-Venv -BasePythonExe $basePythonExe -Root $root -SkipPip:$SkipPipInstall
 Write-Host "Using Python executable: $pythonExe" -ForegroundColor Yellow
 
 Write-Step "Finding NSSM"

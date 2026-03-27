@@ -45,7 +45,7 @@ If fso.FileExists(installScript) Then
               vbYesNo + vbQuestion, "Odoo Print Agent Manager") = vbYes Then
         CreateObject("Shell.Application").ShellExecute _
             "powershell.exe", _
-            "-ExecutionPolicy Bypass -File """ & installScript & _
+            "-NoExit -ExecutionPolicy Bypass -File """ & installScript & _
             """ -ServiceName OdooPrintAgent -ProjectRoot """ & projectRoot & _
             """ -AutoInstallPython", _
             "", _
