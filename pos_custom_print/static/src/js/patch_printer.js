@@ -106,10 +106,14 @@ function normalizeLineList(value) {
 
 function normalizeChanges(changes) {
     const src = changes && typeof changes === 'object' ? changes : {};
+    const cancelled = normalizeLineList(src.cancelled).map((line) => ({
+        ...line,
+        qty: line.qty > 0 ? -line.qty : line.qty,
+    }));
     return {
         ...src,
         new: normalizeLineList(src.new),
-        cancelled: normalizeLineList(src.cancelled),
+        cancelled,
         noteUpdate: normalizeLineList(src.noteUpdate),
         data: normalizeLineList(src.data),
     };

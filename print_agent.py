@@ -93,6 +93,42 @@ _route_fail_until = {}
 _runtime_lock = threading.RLock()
 _last_odoo_unavailable_log_ts = 0.0
 
+
+def _default_templates():
+    return {
+        'receipt': {
+            'elements': [
+                {'field': 'company_name', 'align': 'center', 'style': 'double'},
+                {'field': 'order_name_line', 'align': 'center'},
+                {'field': 'date_line', 'align': 'center'},
+                {'field': 'cashier_line', 'align': 'center'},
+                {'field': 'table_guests_line', 'align': 'center'},
+                {'field': 'tracking_number', 'align': 'center', 'style': 'double'},
+                {'field': 'separator'},
+                {'field': 'lines_block'},
+                {'field': 'separator'},
+                {'field': 'subtotal_line'},
+                {'field': 'tax_line'},
+                {'field': 'total_line', 'style': 'bold'},
+                {'field': 'payments_block'},
+            ]
+        },
+        'kitchen': {
+            'elements': [
+                {'field': 'table_big', 'align': 'center', 'style': 'double'},
+                {'field': 'table_circle', 'align': 'center'},
+                {'field': 'ticket_title', 'align': 'center'},
+                {'field': 'printer_line'},
+                {'field': 'table_line'},
+                {'field': 'order_line'},
+                {'field': 'time_line'},
+                {'field': 'separator'},
+                {'field': 'items_block'},
+                {'field': 'separator'},
+            ]
+        },
+    }
+
 _runtime_config = {
     'poll_interval_sec': POLL_INTERVAL_SEC,
     'default': {
@@ -112,6 +148,7 @@ _runtime_config = {
         'username': ODOO_USERNAME,
         'password': ODOO_PASSWORD,
     },
+    'templates': _default_templates(),
     'last_update': None,
 }
 _runtime_last_fetch_ts = 0.0
@@ -193,6 +230,33 @@ def _sanitize_runtime_payload(payload):
                 'cooldown_sec': _as_float(raw_route.get('cooldown_sec', DEFAULT_ROUTE_COOLDOWN_SEC), DEFAULT_ROUTE_COOLDOWN_SEC),
             }
         clean['routes'] = clean_routes
+
+    templates_cfg = payload.get('templates')
+    if isinstance(templates_cfg, dict):
+        clean_templates = {}
+        for tname, tdata in templates_cfg.items():
+            if not isinstance(tdata, dict):
+                continue
+            elems = tdata.get('elements')
+            if not isinstance(elems, list):
+                continue
+            normalized_elems = []
+            for elem in elems:
+                if not isinstance(elem, dict):
+                    continue
+                field = str(elem.get('field', '')).strip()
+                if not field:
+                    continue
+                normalized_elems.append({
+                    'field': field,
+                    'align': str(elem.get('align', 'left') or 'left'),
+                    'style': str(elem.get('style', 'normal') or 'normal'),
+                    'col': _as_int(elem.get('col', 0), 0),
+                })
+            if normalized_elems:
+                clean_templates[str(tname)] = {'elements': normalized_elems}
+        if clean_templates:
+            clean['templates'] = clean_templates
 
     return clean
 
@@ -304,6 +368,12 @@ def _runtime_default_value(key, fallback=None):
     return fallback
 
 
+def _runtime_templates():
+    with _runtime_lock:
+        templates = _runtime_config.get('templates') or {}
+        return json.loads(json.dumps(templates))
+
+
 def _apply_remote_config_payload(payload):
     if not isinstance(payload, dict):
         return False
@@ -311,6 +381,7 @@ def _apply_remote_config_payload(payload):
     routes = payload.get('routes') if isinstance(payload.get('routes'), dict) else None
     defaults = payload.get('default') if isinstance(payload.get('default'), dict) else None
     odoo_settings = payload.get('odoo') if isinstance(payload.get('odoo'), dict) else None
+    templates = payload.get('templates') if isinstance(payload.get('templates'), dict) else None
     poll_interval = payload.get('poll_interval_sec', POLL_INTERVAL_SEC)
 
     with _runtime_lock:
@@ -338,6 +409,18 @@ def _apply_remote_config_payload(payload):
             })
             if normalized_odoo != (_runtime_config.get('odoo') or {}):
                 _runtime_config['odoo'] = normalized_odoo
+                changed = True
+
+        if templates is not None:
+            normalized_templates = _default_templates()
+            for tname, tdata in templates.items():
+                if not isinstance(tdata, dict):
+                    continue
+                elems = tdata.get('elements')
+                if isinstance(elems, list):
+                    normalized_templates[str(tname)] = {'elements': [dict(e) for e in elems if isinstance(e, dict)]}
+            if normalized_templates != (_runtime_config.get('templates') or {}):
+                _runtime_config['templates'] = normalized_templates
                 changed = True
 
         poll_interval_num = _as_float(poll_interval, POLL_INTERVAL_SEC)
@@ -821,6 +904,36 @@ def _extract_qty(line):
     return 1.0
 
 
+def _signed_kitchen_qty(line, section_name):
+    qty = _extract_qty(line) if isinstance(line, dict) else _parse_qty(line, default=1.0)
+    marker = ''
+    if isinstance(line, dict):
+        marker = _first_non_empty(
+            line.get('section'),
+            line.get('state'),
+            line.get('status'),
+            line.get('change_type'),
+            line.get('type'),
+        ).lower()
+
+    is_cancelled = section_name == 'cancelled' or marker in {
+        'cancelled',
+        'canceled',
+        'removed',
+        'delete',
+        'deleted',
+        'cxl',
+        'minus',
+        'negative',
+    }
+
+    # Odoo preparation "cancelled" lines are often sent as positive deltas.
+    # On paper we want explicit subtraction for kitchen/bar operators.
+    if is_cancelled and qty > 0:
+        return -qty
+    return qty
+
+
 def _extract_product_name(line):
     if not isinstance(line, dict):
         return str(line or '')
@@ -868,6 +981,199 @@ def _wrap_text(text, width=42):
     return lines
 
 
+def _template_elements(ticket_type):
+    templates = _runtime_templates()
+    defaults = _default_templates()
+    template = templates.get(ticket_type) if isinstance(templates, dict) else None
+    if not isinstance(template, dict):
+        template = defaults.get(ticket_type, {})
+    elements = template.get('elements')
+    if not isinstance(elements, list) or not elements:
+        elements = defaults.get(ticket_type, {}).get('elements', [])
+    return [dict(elem) for elem in elements if isinstance(elem, dict)]
+
+
+def _set_style(printer, elem):
+    align = str(elem.get('align', 'left') or 'left').lower()
+    if align not in ('left', 'center', 'right'):
+        align = 'left'
+    style = str(elem.get('style', 'normal') or 'normal').lower()
+    if style == 'double':
+        printer.set(align=align, font='a', bold=True, height=2, width=2)
+    elif style == 'bold':
+        printer.set(align=align, font='a', bold=True, height=1, width=1)
+    else:
+        printer.set(align=align, font='a', bold=False, height=1, width=1)
+    return align
+
+
+def _emit_template_line(printer, text, elem, width=42):
+    align = _set_style(printer, elem)
+    col = max(0, _as_int(elem.get('col', 0), 0))
+    line = str(text or '')
+    if align == 'left' and col > 0:
+        line = (' ' * col) + line
+    if len(line) > width:
+        line = line[:width]
+    printer.text(line + '\n')
+
+
+def _build_receipt_lines(payload, currency_symbol):
+    lines = []
+    for line in payload.get('lines', []):
+        qty_text = _display_qty(line.get('qty', 0))
+        price_text = line.get('price_display') or _money(line.get('price', 0), currency_symbol)
+        lines.append({'text': _fit_columns(qty_text, line.get('name', ''), price_text), 'style': 'normal'})
+        unit_price_display = line.get('unit_price_display')
+        if unit_price_display:
+            lines.append({'text': f'  {unit_price_display}', 'style': 'normal'})
+    return lines
+
+
+def _build_kitchen_lines(payload):
+    lines = []
+    changes = payload.get('changes', {})
+    for section_name in ('new', 'cancelled', 'noteUpdate'):
+        for line in _as_line_list(changes.get(section_name, [])):
+            lines.append({
+                'qty': _signed_kitchen_qty(line, section_name),
+                'product': _extract_product_name(line),
+                'note': _extract_line_note(line),
+                'section': section_name,
+            })
+    for line in _as_line_list(changes.get('data', [])):
+        lines.append({
+            'qty': _signed_kitchen_qty(line, 'new'),
+            'product': _extract_product_name(line),
+            'note': _extract_line_note(line),
+            'section': 'new',
+        })
+    if not lines:
+        for line in _as_line_list(payload.get('orderlines', [])):
+            lines.append({
+                'qty': _signed_kitchen_qty(line, 'new'),
+                'product': _extract_product_name(line),
+                'note': _extract_line_note(line),
+                'section': 'new',
+            })
+    rendered = []
+    for line in lines:
+        section_name = line.get('section')
+        prefix = 'NOTE ' if section_name == 'noteUpdate' else ''
+        name = f"{prefix}{line['product']}"[:30]
+        rendered.append({'text': f"{_display_qty(line['qty']):<6}{name}", 'style': 'normal'})
+        if line['note']:
+            rendered.append({'text': f" >> {line['note']}", 'style': 'normal'})
+    return rendered
+
+
+def _render_receipt_template(printer, payload):
+    currency_symbol = payload.get('currency_symbol', '')
+    elements = _template_elements('receipt')
+
+    table_label = payload.get('table') or '-'
+    guest_label = payload.get('customer_count') or '-'
+    context = {
+        'company_name': payload.get('company_name', 'Odoo POS'),
+        'order_name_line': f"Ticket {payload.get('order_name', '')}" if payload.get('order_name') else '',
+        'date_line': f"{payload.get('date', '')[:19].replace('T', ' ')}" if payload.get('date') else '',
+        'cashier_line': f"Served by: {payload.get('cashier', '')}" if payload.get('cashier') else '',
+        'table_guests_line': f"Table: {table_label}  Guests: {guest_label}" if payload.get('table') or payload.get('customer_count') else '',
+        'tracking_number': payload.get('tracking_number') or '',
+        'subtotal_line': _left_right('Subtotal', _money(payload.get('subtotal', 0), currency_symbol)),
+        'tax_line': _left_right('Tax', _money(payload.get('tax', 0), currency_symbol)),
+        'total_line': _left_right('Total', _money(payload.get('total', 0), currency_symbol)),
+    }
+
+    payments_lines = []
+    for payment in payload.get('payments', []):
+        payments_lines.append({
+            'text': _left_right(
+                payment.get('name', 'Payment'),
+                payment.get('amount_display') or _money(payment.get('amount', 0), currency_symbol),
+            ),
+            'style': 'normal',
+        })
+
+    for elem in elements:
+        field = elem.get('field')
+        if field == 'separator':
+            _emit_template_line(printer, '-' * 42, elem)
+            continue
+        if field == 'blank':
+            _emit_template_line(printer, '', elem)
+            continue
+        if field == 'lines_block':
+            for l in _build_receipt_lines(payload, currency_symbol):
+                line_elem = dict(elem)
+                line_elem['style'] = l.get('style', line_elem.get('style', 'normal'))
+                _emit_template_line(printer, l.get('text', ''), line_elem)
+            continue
+        if field == 'payments_block':
+            for l in payments_lines:
+                line_elem = dict(elem)
+                line_elem['style'] = l.get('style', line_elem.get('style', 'normal'))
+                _emit_template_line(printer, l.get('text', ''), line_elem)
+            continue
+        value = context.get(field, '')
+        if value:
+            _emit_template_line(printer, value, elem)
+
+
+def _render_kitchen_template(printer, payload):
+    elements = _template_elements('kitchen')
+    printer_label = _first_non_empty(
+        payload.get('printer_name'),
+        payload.get('route_printer'),
+        payload.get('printer'),
+        'Kitchen',
+    )
+    table_label = _first_non_empty(
+        payload.get('table'),
+        payload.get('table_name'),
+        payload.get('table_number'),
+        payload.get('table_id', {}).get('table_number') if isinstance(payload.get('table_id'), dict) else None,
+        payload.get('table_id', {}).get('name') if isinstance(payload.get('table_id'), dict) else None,
+    ) or 'N/A'
+    order_label = _first_non_empty(
+        payload.get('order'),
+        payload.get('order_name'),
+        payload.get('name'),
+        payload.get('tracking_number'),
+        payload.get('trackingNumber'),
+    )
+
+    context = {
+        'ticket_title': f"** {printer_label.upper()} ORDER **",
+        'table_big': f"TABLE {table_label}",
+        'table_circle': f"({table_label})",
+        'printer_line': f"Printer : {printer_label}",
+        'table_line': f"Table   : {table_label}",
+        'order_line': f"Order   : {order_label}",
+        'time_line': f"Time    : {datetime.now().strftime('%H:%M:%S')}",
+    }
+
+    kitchen_lines = _build_kitchen_lines(payload)
+
+    for elem in elements:
+        field = elem.get('field')
+        if field == 'separator':
+            _emit_template_line(printer, '-' * 40, elem)
+            continue
+        if field == 'blank':
+            _emit_template_line(printer, '', elem)
+            continue
+        if field == 'items_block':
+            for l in kitchen_lines:
+                line_elem = dict(elem)
+                line_elem['style'] = l.get('style', line_elem.get('style', 'normal'))
+                _emit_template_line(printer, l.get('text', ''), line_elem)
+            continue
+        value = context.get(field, '')
+        if value:
+            _emit_template_line(printer, value, elem)
+
+
 def format_receipt(data: str, printer_type: str, printer) -> None:
     """
     Formats and prints the receipt or kitchen ticket.
@@ -890,107 +1196,9 @@ def format_receipt(data: str, printer_type: str, printer) -> None:
         is_json = False
 
     if printer_type == 'receipt' and is_json and payload.get('type') == 'receipt':
-        currency_symbol = payload.get('currency_symbol', '')
-        printer.set(align='center', font='a', bold=True, height=2, width=1)
-        printer.text(f"{payload.get('company_name', 'Odoo POS')}\n")
-        printer.set(align='center', font='a', bold=False, height=1, width=1)
-        if payload.get('order_name'):
-            printer.text(f"Ticket {payload.get('order_name')}\n")
-        if payload.get('date'):
-            printer.text(f"{payload.get('date')[:19].replace('T', ' ')}\n")
-        if payload.get('cashier'):
-            printer.text(f"Served by: {payload.get('cashier')}\n")
-        if payload.get('table') or payload.get('customer_count'):
-            table_label = payload.get('table') or '-'
-            guest_label = payload.get('customer_count') or '-'
-            printer.text(f"Table: {table_label}  Guests: {guest_label}\n")
-        if payload.get('tracking_number'):
-            printer.set(align='center', font='a', bold=True, height=2, width=2)
-            printer.text(f"{payload.get('tracking_number')}\n")
-        printer.text('-' * 42 + '\n')
-        printer.set(align='left', font='a', bold=False, height=1, width=1)
-        for line in payload.get('lines', []):
-            qty_text = _display_qty(line.get('qty', 0))
-            price_text = line.get('price_display') or _money(line.get('price', 0), currency_symbol)
-            printer.set(align='left', font='b', bold=False, height=1, width=1)
-            printer.text(_fit_columns(qty_text, line.get('name', ''), price_text) + '\n')
-            printer.set(align='left', font='a', bold=False, height=1, width=1)
-            unit_price_display = line.get('unit_price_display')
-            if unit_price_display:
-                printer.set(align='left', font='b', bold=False, height=1, width=1)
-                printer.text(f"  {unit_price_display}\n")
-                printer.set(align='left', font='a', bold=False, height=1, width=1)
-        printer.text('-' * 42 + '\n')
-        printer.text(_left_right('Subtotal', _money(payload.get('subtotal', 0), currency_symbol)) + '\n')
-        printer.text(_left_right('Tax', _money(payload.get('tax', 0), currency_symbol)) + '\n')
-        printer.set(bold=True)
-        printer.text(_left_right('Total', _money(payload.get('total', 0), currency_symbol)) + '\n')
-        printer.set(bold=False)
-        for payment in payload.get('payments', []):
-            printer.text(
-                _left_right(
-                    payment.get('name', 'Payment'),
-                    payment.get('amount_display') or _money(payment.get('amount', 0), currency_symbol),
-                ) + '\n'
-            )
+        _render_receipt_template(printer, payload)
     elif printer_type == 'kitchen' and is_json:
-        lines = []
-        changes = payload.get('changes', {})
-        table_label = _first_non_empty(
-            payload.get('table'),
-            payload.get('table_name'),
-            payload.get('table_number'),
-            payload.get('table_id', {}).get('table_number') if isinstance(payload.get('table_id'), dict) else None,
-            payload.get('table_id', {}).get('name') if isinstance(payload.get('table_id'), dict) else None,
-        )
-        order_label = _first_non_empty(
-            payload.get('order'),
-            payload.get('order_name'),
-            payload.get('name'),
-            payload.get('tracking_number'),
-            payload.get('trackingNumber'),
-        )
-        for section_name in ('new', 'cancelled', 'noteUpdate'):
-            for line in _as_line_list(changes.get(section_name, [])):
-                lines.append({
-                    'qty': _extract_qty(line),
-                    'product': _extract_product_name(line),
-                    'note': _extract_line_note(line),
-                    'section': section_name,
-                })
-        for line in _as_line_list(changes.get('data', [])):
-            lines.append({
-                'qty': _extract_qty(line),
-                'product': _extract_product_name(line),
-                'note': _extract_line_note(line),
-                'section': 'new',
-            })
-        for line in _as_line_list(payload.get('orderlines', [])):
-            lines.append({
-                'qty': _extract_qty(line),
-                'product': _extract_product_name(line),
-                'note': _extract_line_note(line),
-                'section': 'new',
-            })
-
-        printer.text('** KITCHEN ORDER **\n')
-        printer.set(align='left', font='a', bold=False, height=1, width=1)
-        printer.text(f"Printer : {payload.get('printer_name', 'Kitchen')}\n")
-        printer.text(f"Table   : {table_label or 'N/A'}\n")
-        printer.text(f"Order   : {order_label}\n")
-        printer.text(f"Time    : {datetime.now().strftime('%H:%M:%S')}\n")
-        printer.text('-' * 40 + '\n')
-        for line in lines:
-            prefix = ''
-            if line['section'] == 'cancelled':
-                prefix = 'CXL '
-            elif line['section'] == 'noteUpdate':
-                prefix = 'NOTE '
-            name = f"{prefix}{line['product']}"[:30]
-            printer.text(f"{_display_qty(line['qty']):<6}{name}\n")
-            if line['note']:
-                printer.text(f" >> {line['note']}\n")
-        printer.text('-' * 40 + '\n')
+        _render_kitchen_template(printer, payload)
     else:
         printer.text('** RECEIPT **\n')
         printer.set(align='left', font='a', bold=False, height=1, width=1)
