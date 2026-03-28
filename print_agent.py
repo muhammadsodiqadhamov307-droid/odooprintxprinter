@@ -880,6 +880,38 @@ def _parse_qty(value, default=1.0):
             return float(default)
 
 
+_KITCHEN_PRIORITY_QTY_KEYS = (
+    'delta',
+    'qty_delta',
+    'qtyDelta',
+    'change',
+    'change_qty',
+    'changeQty',
+    'difference',
+    'diff',
+    'removed_qty',
+    'removedQty',
+    'cancelled_qty',
+    'cancelledQty',
+    'canceled_qty',
+    'canceledQty',
+    'decrease_qty',
+    'decreaseQty',
+    'decreased_qty',
+    'decreasedQty',
+)
+_KITCHEN_FALLBACK_QTY_KEYS = (
+    'qty',
+    'quantity',
+    'qty_done',
+    'count',
+    'new_qty',
+    'newQty',
+    'amount',
+)
+_KITCHEN_PRIORITY_QTY_KEY_SET = set(_KITCHEN_PRIORITY_QTY_KEYS)
+
+
 def _display_qty(value):
     qty = _parse_qty(value, default=1.0)
     if abs(qty - round(qty)) < 1e-9:
@@ -898,9 +930,22 @@ def _as_line_list(value):
 def _extract_qty(line):
     if not isinstance(line, dict):
         return 1.0
-    for key in ('qty', 'quantity', 'qty_done', 'count', 'new_qty', 'newQty', 'delta', 'amount'):
+    candidates = []
+    seen = set()
+    for key in _KITCHEN_PRIORITY_QTY_KEYS + _KITCHEN_FALLBACK_QTY_KEYS:
+        if key in seen:
+            continue
         if key in line and line.get(key) is not None:
-            return _parse_qty(line.get(key), default=1.0)
+            candidates.append((key, _parse_qty(line.get(key), default=1.0)))
+            seen.add(key)
+    for _, value in candidates:
+        if value < 0:
+            return value
+    for key, value in candidates:
+        if key in _KITCHEN_PRIORITY_QTY_KEY_SET:
+            return value
+    if candidates:
+        return candidates[0][1]
     return 1.0
 
 

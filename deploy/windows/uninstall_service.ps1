@@ -46,15 +46,21 @@ if ($service) {
 }
 
 if ($RemoveShortcuts) {
-    $desktop = [Environment]::GetFolderPath("Desktop")
-    $shortcuts = @(
-        (Join-Path $desktop "Odoo Print Agent Logs.lnk"),
-        (Join-Path $desktop "Odoo Print Agent Restart.lnk"),
-        (Join-Path $desktop "Odoo Print Agent Manager.lnk")
+    $desktopLocations = @(
+        [Environment]::GetFolderPath("Desktop"),
+        [Environment]::GetFolderPath("CommonDesktopDirectory")
+    ) | Where-Object { $_ } | Select-Object -Unique
+    $shortcutNames = @(
+        "Odoo Print Agent Logs.lnk",
+        "Odoo Print Agent Restart.lnk",
+        "Odoo Print Agent Manager.lnk"
     )
-    foreach ($shortcut in $shortcuts) {
-        if (Test-Path -LiteralPath $shortcut) {
-            Remove-Item -LiteralPath $shortcut -Force
+    foreach ($desktop in $desktopLocations) {
+        foreach ($shortcutName in $shortcutNames) {
+            $shortcut = Join-Path $desktop $shortcutName
+            if (Test-Path -LiteralPath $shortcut) {
+                Remove-Item -LiteralPath $shortcut -Force
+            }
         }
     }
     Write-Host "Desktop shortcuts removed."

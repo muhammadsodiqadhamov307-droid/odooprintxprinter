@@ -69,6 +69,37 @@ function resolveOrderLabel(data, order) {
     );
 }
 
+const PRIORITY_QTY_KEYS = [
+    'delta',
+    'qty_delta',
+    'qtyDelta',
+    'change',
+    'change_qty',
+    'changeQty',
+    'difference',
+    'diff',
+    'removed_qty',
+    'removedQty',
+    'cancelled_qty',
+    'cancelledQty',
+    'canceled_qty',
+    'canceledQty',
+    'decrease_qty',
+    'decreaseQty',
+    'decreased_qty',
+    'decreasedQty',
+];
+
+const FALLBACK_QTY_KEYS = [
+    'qty',
+    'quantity',
+    'qty_done',
+    'count',
+    'new_qty',
+    'newQty',
+    'amount',
+];
+
 function normalizeQty(value) {
     if (value === null || value === undefined) {
         return 1;
@@ -84,13 +115,41 @@ function normalizeQty(value) {
     return Number.isFinite(parsed) ? parsed : 1;
 }
 
+function collectQtyCandidates(src) {
+    if (!src || typeof src !== 'object') {
+        return [];
+    }
+    const candidates = [];
+    for (const key of [...PRIORITY_QTY_KEYS, ...FALLBACK_QTY_KEYS]) {
+        if (!(key in src) || src[key] === null || src[key] === undefined) {
+            continue;
+        }
+        candidates.push({ key, value: normalizeQty(src[key]) });
+    }
+    return candidates;
+}
+
+function extractKitchenQty(src) {
+    const candidates = collectQtyCandidates(src);
+    if (!candidates.length) {
+        return 1;
+    }
+    const explicitNegative = candidates.find((candidate) => candidate.value < 0);
+    if (explicitNegative) {
+        return explicitNegative.value;
+    }
+    const priorityValue = candidates.find((candidate) => PRIORITY_QTY_KEYS.includes(candidate.key));
+    if (priorityValue) {
+        return priorityValue.value;
+    }
+    return candidates[0].value;
+}
+
 function normalizeLine(line) {
     const src = line && typeof line === 'object' ? line : {};
     return {
         ...src,
-        qty: normalizeQty(
-            src.qty ?? src.quantity ?? src.qty_done ?? src.count ?? src.new_qty ?? src.newQty ?? src.delta ?? src.amount
-        ),
+        qty: extractKitchenQty(src),
     };
 }
 

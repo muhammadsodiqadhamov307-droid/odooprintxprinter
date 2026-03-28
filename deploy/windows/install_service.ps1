@@ -225,6 +225,22 @@ function New-DesktopShortcut {
     $shortcut.Save()
 }
 
+function Remove-DesktopShortcutVariants {
+    param([string]$ShortcutName)
+
+    $locations = @(
+        [Environment]::GetFolderPath("Desktop"),
+        [Environment]::GetFolderPath("CommonDesktopDirectory")
+    ) | Where-Object { $_ } | Select-Object -Unique
+
+    foreach ($location in $locations) {
+        $shortcutPath = Join-Path $location "$ShortcutName.lnk"
+        if (Test-Path -LiteralPath $shortcutPath) {
+            Remove-Item -LiteralPath $shortcutPath -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).
     IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
@@ -273,7 +289,8 @@ Write-Step "Installing Windows service $ServiceName"
 Write-Step "Starting service"
 & $nssm start $ServiceName
 
-Write-Step "Creating desktop shortcuts"
+Write-Step "Refreshing desktop shortcut"
+Remove-DesktopShortcutVariants -ShortcutName "Odoo Print Agent Manager"
 if ((Test-Path -LiteralPath $managerVbs) -and (Test-Path -LiteralPath $wscriptExe)) {
     New-DesktopShortcut -ShortcutName "Odoo Print Agent Manager" -TargetPath $wscriptExe -Arguments "`"$managerVbs`" `"$root`"" -WorkingDirectory $root -IconLocation $managerIcon
 } else {

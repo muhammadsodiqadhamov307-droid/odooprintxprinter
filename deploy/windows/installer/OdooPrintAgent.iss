@@ -2,7 +2,7 @@
 ; Build with: iscc deploy\windows\installer\OdooPrintAgent.iss
 
 #define MyAppName "Odoo Custom Print Agent"
-#define MyAppVersion "1.0.9"
+#define MyAppVersion "1.0.10"
 #define MyAppPublisher "Your Company"
 #define MyAppExeName "print_agent.py"
 
@@ -27,9 +27,6 @@ SetupIconFile=..\assets\app_logo.ico
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
-[Tasks]
-Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional icons:"; Flags: checkedonce
-
 [Files]
 Source: "..\..\..\print_agent.py"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\..\..\agent_manager.py"; DestDir: "{app}"; Flags: ignoreversion
@@ -47,7 +44,6 @@ Source: "..\..\..\pos_custom_print\*"; DestDir: "{app}\pos_custom_print"; Flags:
 
 [Icons]
 Name: "{group}\Odoo Print Agent Manager"; Filename: "{sys}\wscript.exe"; Parameters: """{app}\deploy\windows\run_manager.vbs"" ""{app}"""; WorkingDir: "{app}"; IconFilename: "{app}\deploy\windows\assets\app_logo.ico"
-Name: "{autodesktop}\Odoo Print Agent Manager"; Filename: "{sys}\wscript.exe"; Parameters: """{app}\deploy\windows\run_manager.vbs"" ""{app}"""; WorkingDir: "{app}"; Tasks: desktopicon; IconFilename: "{app}\deploy\windows\assets\app_logo.ico"
 
 [Run]
 Filename: "powershell.exe"; \
