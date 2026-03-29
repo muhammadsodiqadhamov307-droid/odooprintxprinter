@@ -86,12 +86,27 @@ except ImportError:
     print('Run: pip install python-escpos pyusb Pillow')
     sys.exit(1)
 
+try:
+    from PIL import Image, ImageDraw, ImageFont
+except ImportError:
+    Image = None
+    ImageDraw = None
+    ImageFont = None
+
 
 logger = logging.getLogger('PrintAgent')
 _printer_cache = None
 _route_fail_until = {}
 _runtime_lock = threading.RLock()
 _last_odoo_unavailable_log_ts = 0.0
+_font_cache = {}
+
+_LEGACY_EDITOR_CANVAS_WIDTH = 300
+_EDITOR_CANVAS_WIDTH = 420
+_EDITOR_CANVAS_PADDING = 12
+_VISUAL_PAPER_FALLBACK_WIDTH = 576
+_VISUAL_MIN_BLOCK_WIDTH = 96
+_VISUAL_MIN_BLOCK_HEIGHT = 26
 
 
 def _default_templates():
@@ -122,6 +137,7 @@ def _default_templates():
                 {'field': 'table_line'},
                 {'field': 'order_line'},
                 {'field': 'time_line'},
+                {'field': 'waiter_line'},
                 {'field': 'separator'},
                 {'field': 'items_block'},
                 {'field': 'separator'},
@@ -244,17 +260,29 @@ def _sanitize_runtime_payload(payload):
             for elem in elems:
                 if not isinstance(elem, dict):
                     continue
-                field = str(elem.get('field', '')).strip()
+                field = str(elem.get('field') or elem.get('name') or '').strip()
                 if not field:
                     continue
-                normalized_elems.append({
+                normalized = {
                     'field': field,
                     'align': str(elem.get('align', 'left') or 'left'),
                     'style': str(elem.get('style', 'normal') or 'normal'),
                     'col': _as_int(elem.get('col', 0), 0),
-                })
+                }
+                if elem.get('text') is not None:
+                    normalized['text'] = str(elem.get('text') or '')
+                if elem.get('label') is not None:
+                    normalized['label'] = str(elem.get('label') or '')
+                for key in ('order', 'x', 'y', 'width', 'height'):
+                    if elem.get(key) is None:
+                        continue
+                    normalized[key] = _as_int(elem.get(key), 0)
+                normalized_elems.append(normalized)
             if normalized_elems:
-                clean_templates[str(tname)] = {'elements': normalized_elems}
+                normalized_template = {'elements': normalized_elems}
+                if tdata.get('canvas_width') is not None:
+                    normalized_template['canvas_width'] = _as_int(tdata.get('canvas_width'), _EDITOR_CANVAS_WIDTH)
+                clean_templates[str(tname)] = normalized_template
         if clean_templates:
             clean['templates'] = clean_templates
 
@@ -418,7 +446,10 @@ def _apply_remote_config_payload(payload):
                     continue
                 elems = tdata.get('elements')
                 if isinstance(elems, list):
-                    normalized_templates[str(tname)] = {'elements': [dict(e) for e in elems if isinstance(e, dict)]}
+                    normalized_template = {'elements': [dict(e) for e in elems if isinstance(e, dict)]}
+                    if tdata.get('canvas_width') is not None:
+                        normalized_template['canvas_width'] = _as_int(tdata.get('canvas_width'), _EDITOR_CANVAS_WIDTH)
+                    normalized_templates[str(tname)] = normalized_template
             if normalized_templates != (_runtime_config.get('templates') or {}):
                 _runtime_config['templates'] = normalized_templates
                 changed = True
@@ -910,6 +941,56 @@ _KITCHEN_FALLBACK_QTY_KEYS = (
     'amount',
 )
 _KITCHEN_PRIORITY_QTY_KEY_SET = set(_KITCHEN_PRIORITY_QTY_KEYS)
+_KITCHEN_NEGATIVE_MARKERS = {
+    'cancelled',
+    'canceled',
+    'removed',
+    'remove',
+    'delete',
+    'deleted',
+    'cxl',
+    'minus',
+    'negative',
+    'decrease',
+    'decreased',
+    'reduce',
+    'reduced',
+    'less',
+    'decrement',
+    'decremented',
+    'subtract',
+    'subtracted',
+}
+_KITCHEN_NEGATIVE_TOKENS = (
+    'cancel',
+    'cxl',
+    'remove',
+    'delete',
+    'minus',
+    'negative',
+    'decrease',
+    'reduce',
+    'decrement',
+    'subtract',
+    'less',
+)
+_KITCHEN_SEMANTIC_QTY_TOKENS = (
+    'qty',
+    'quantity',
+    'count',
+    'delta',
+    'change',
+    'diff',
+    'difference',
+    'decrease',
+    'decrement',
+    'reduce',
+    'remove',
+    'cancel',
+)
+_KITCHEN_OLD_QTY_TOKENS = ('old', 'prev', 'previous', 'before', 'from')
+_KITCHEN_NEW_QTY_TOKENS = ('new', 'current', 'after', 'to')
+_KITCHEN_EXCLUDED_QTY_TOKENS = ('price', 'cost', 'tax', 'total', 'subtotal', 'discount')
 
 
 def _display_qty(value):
@@ -927,56 +1008,56 @@ def _as_line_list(value):
     return []
 
 
-def _extract_qty(line):
+def _canonical_change_section(changes):
+    if not isinstance(changes, dict):
+        return ''
+
+    section = _first_non_empty(
+        changes.get('section'),
+        changes.get('change_section'),
+    ).replace(' ', '').strip().lower()
+    if section in ('cancelled', 'canceled'):
+        return 'cancelled'
+    if section == 'new':
+        return 'new'
+    if section in ('noteupdate', 'note_update'):
+        return 'noteUpdate'
+
+    title = _first_non_empty(changes.get('title')).replace(' ', '').strip().lower()
+    if title in ('cancelled', 'canceled'):
+        return 'cancelled'
+    if title == 'new':
+        return 'new'
+    if title == 'noteupdate':
+        return 'noteUpdate'
+    return ''
+
+
+def _normalize_signed_change_line(line, section_name=''):
     if not isinstance(line, dict):
-        return 1.0
-    candidates = []
-    seen = set()
-    for key in _KITCHEN_PRIORITY_QTY_KEYS + _KITCHEN_FALLBACK_QTY_KEYS:
-        if key in seen:
-            continue
-        if key in line and line.get(key) is not None:
-            candidates.append((key, _parse_qty(line.get(key), default=1.0)))
-            seen.add(key)
-    for _, value in candidates:
-        if value < 0:
-            return value
-    for key, value in candidates:
-        if key in _KITCHEN_PRIORITY_QTY_KEY_SET:
-            return value
-    if candidates:
-        return candidates[0][1]
-    return 1.0
+        return None
 
+    raw_qty = line.get('qty')
+    if raw_qty is None:
+        raw_qty = line.get('quantity')
+    if raw_qty is None:
+        raw_qty = line.get('qty_done')
+    if raw_qty is None:
+        raw_qty = line.get('count')
+    if raw_qty is None:
+        raw_qty = line.get('amount')
 
-def _signed_kitchen_qty(line, section_name):
-    qty = _extract_qty(line) if isinstance(line, dict) else _parse_qty(line, default=1.0)
-    marker = ''
-    if isinstance(line, dict):
-        marker = _first_non_empty(
-            line.get('section'),
-            line.get('state'),
-            line.get('status'),
-            line.get('change_type'),
-            line.get('type'),
-        ).lower()
+    qty = _parse_qty(raw_qty, default=1.0)
+    section = str(section_name or line.get('change_section') or '').strip().lower()
+    if section in ('cancelled', 'canceled') and qty > 0:
+        qty = -qty
 
-    is_cancelled = section_name == 'cancelled' or marker in {
-        'cancelled',
-        'canceled',
-        'removed',
-        'delete',
-        'deleted',
-        'cxl',
-        'minus',
-        'negative',
-    }
-
-    # Odoo preparation "cancelled" lines are often sent as positive deltas.
-    # On paper we want explicit subtraction for kitchen/bar operators.
-    if is_cancelled and qty > 0:
-        return -qty
-    return qty
+    normalized = dict(line)
+    normalized['qty'] = qty
+    normalized['quantity'] = qty
+    if section:
+        normalized['change_section'] = section
+    return normalized
 
 
 def _extract_product_name(line):
@@ -994,6 +1075,84 @@ def _extract_product_name(line):
         line.get('display_name'),
         line.get('full_product_name'),
     )
+
+
+def _collect_signed_change_lines(changes):
+    if isinstance(changes, dict):
+        signed_lines = changes.get('signed_lines')
+        if isinstance(signed_lines, list):
+            return [
+                normalized
+                for normalized in (_normalize_signed_change_line(line) for line in signed_lines)
+                if normalized is not None
+            ]
+
+        section = _canonical_change_section(changes)
+        data_lines = _as_line_list(changes.get('data') or [])
+        if data_lines:
+            return [
+                normalized
+                for normalized in (
+                    _normalize_signed_change_line(line, section_name=section) for line in data_lines
+                )
+                if normalized is not None
+            ]
+
+        combined = []
+        for section_name in ('new', 'cancelled', 'noteUpdate'):
+            combined.extend(
+                normalized
+                for normalized in (
+                    _normalize_signed_change_line(line, section_name=section_name)
+                    for line in _as_line_list(changes.get(section_name) or [])
+                )
+                if normalized is not None
+            )
+        return combined
+
+    if isinstance(changes, list):
+        return [
+            normalized
+            for normalized in (_normalize_signed_change_line(line) for line in changes)
+            if normalized is not None
+        ]
+
+    return []
+
+
+def _build_kitchen_lines(payload):
+    changes = payload.get('changes', {})
+    raw_lines = _collect_signed_change_lines(changes)
+    if not raw_lines:
+        raw_lines = [
+            normalized
+            for normalized in (
+                _normalize_signed_change_line(line)
+                for line in _as_line_list(payload.get('orderlines') or [])
+            )
+            if normalized is not None
+        ]
+
+    rendered = []
+    for line in raw_lines:
+        product_name = _extract_product_name(line)
+        if not product_name:
+            continue
+
+        note = _extract_line_note(line)
+        qty = _parse_qty(line.get('qty'), default=_parse_qty(line.get('quantity'), default=1.0))
+        if abs(qty) < 1e-9:
+            continue
+
+        logger.info('[KITCHEN-DELTA] %s | qty=%s', product_name, _display_qty(qty))
+
+        qty_str = _display_qty(qty)
+        name_str = product_name[:30]
+        rendered.append({'text': f"{qty_str:<6}{name_str}", 'style': 'normal'})
+        if note:
+            rendered.append({'text': f" >> {note}", 'style': 'normal'})
+
+    return rendered
 
 
 def _extract_line_note(line):
@@ -1026,12 +1185,18 @@ def _wrap_text(text, width=42):
     return lines
 
 
-def _template_elements(ticket_type):
+def _template_definition(ticket_type):
     templates = _runtime_templates()
     defaults = _default_templates()
     template = templates.get(ticket_type) if isinstance(templates, dict) else None
     if not isinstance(template, dict):
         template = defaults.get(ticket_type, {})
+    return dict(template)
+
+
+def _template_elements(ticket_type):
+    template = _template_definition(ticket_type)
+    defaults = _default_templates()
     elements = template.get('elements')
     if not isinstance(elements, list) or not elements:
         elements = defaults.get(ticket_type, {}).get('elements', [])
@@ -1043,7 +1208,9 @@ def _set_style(printer, elem):
     if align not in ('left', 'center', 'right'):
         align = 'left'
     style = str(elem.get('style', 'normal') or 'normal').lower()
-    if style == 'double':
+    if style == 'huge':
+        printer.set(align=align, font='a', bold=True, height=4, width=4)
+    elif style == 'double':
         printer.set(align=align, font='a', bold=True, height=2, width=2)
     elif style == 'bold':
         printer.set(align=align, font='a', bold=True, height=1, width=1)
@@ -1063,6 +1230,404 @@ def _emit_template_line(printer, text, elem, width=42):
     printer.text(line + '\n')
 
 
+def _template_uses_visual_layout(ticket_type):
+    for elem in _template_elements(ticket_type):
+        if not isinstance(elem, dict):
+            continue
+        if str(elem.get('field') or '').strip().lower() == 'static_text':
+            return True
+        if any(elem.get(key) is not None for key in ('x', 'y', 'width', 'height')):
+            return True
+    return False
+
+
+def _visual_source_canvas_width(ticket_type, elements):
+    template = _template_definition(ticket_type)
+    configured_width = _as_int(template.get('canvas_width'), 0)
+    if configured_width > 0:
+        return configured_width
+
+    max_right = 0
+    has_geometry = False
+    for elem in elements:
+        if not isinstance(elem, dict):
+            continue
+        x = elem.get('x')
+        width = elem.get('width')
+        if x is None or width is None:
+            continue
+        has_geometry = True
+        max_right = max(max_right, _as_int(x, 0) + _as_int(width, 0))
+
+    if has_geometry and max_right <= (_LEGACY_EDITOR_CANVAS_WIDTH + _EDITOR_CANVAS_PADDING):
+        return _LEGACY_EDITOR_CANVAS_WIDTH
+    return _EDITOR_CANVAS_WIDTH
+
+
+def _scaled_visual_elem(elem, source_canvas_width, target_canvas_width):
+    if source_canvas_width <= 0 or source_canvas_width == target_canvas_width:
+        return dict(elem)
+
+    scale_x = float(target_canvas_width) / float(source_canvas_width)
+    normalized = dict(elem)
+    for key in ('x', 'width'):
+        if elem.get(key) is None:
+            continue
+        normalized[key] = max(0, int(round(_as_int(elem.get(key), 0) * scale_x)))
+    return normalized
+
+
+def _elem_label(elem, default_label=''):
+    if isinstance(elem, dict):
+        custom = str(elem.get('label') or '').strip()
+        if custom:
+            return custom
+    return str(default_label or '')
+
+
+def _label_value_text(label, value):
+    label_text = str(label or '').strip()
+    value_text = str(value or '').strip()
+    if not label_text:
+        return value_text
+    if not value_text:
+        return label_text
+    return f'{label_text} : {value_text}'
+
+
+def _field_font_cap(field, style='normal'):
+    style_key = str(style or 'normal').lower()
+    default_cap = {'normal': 24, 'bold': 26, 'double': 34, 'huge': 58}.get(style_key, 24)
+    field_key = str(field or '').strip().lower()
+    compact_fields = {
+        'items_block',
+        'lines_block',
+        'payments_block',
+        'printer_line',
+        'table_line',
+        'order_line',
+        'time_line',
+        'waiter_line',
+        'date_line',
+        'cashier_line',
+        'subtotal_line',
+        'tax_line',
+        'total_line',
+        'order_name_line',
+    }
+    emphasis_fields = {'company_name', 'tracking_number', 'table_big', 'ticket_title'}
+    if field_key in compact_fields:
+        return {'normal': 20, 'bold': 22, 'double': 26, 'huge': 36}.get(style_key, 20)
+    if field_key == 'static_text':
+        return {'normal': 22, 'bold': 24, 'double': 30, 'huge': 54}.get(style_key, 22)
+    if field_key in emphasis_fields:
+        return {'normal': 28, 'bold': 30, 'double': 38, 'huge': 112}.get(style_key, 28)
+    return default_cap
+
+
+def _printer_media_width_px(printer, default=_VISUAL_PAPER_FALLBACK_WIDTH):
+    try:
+        width_value = printer.profile.profile_data['media']['width']['pixels']
+        width_num = int(width_value)
+        if width_num >= 512:
+            return width_num
+        if width_num > 0:
+            logger.warning('Printer profile width %spx looks narrow for 80mm paper; using %spx visual render width instead', width_num, default)
+            return default
+    except Exception:
+        pass
+    return default
+
+
+def _visual_block_rect(elem, cursor_y, canvas_width=_EDITOR_CANVAS_WIDTH):
+    width = _as_int(elem.get('width', canvas_width - (_EDITOR_CANVAS_PADDING * 2)), canvas_width - (_EDITOR_CANVAS_PADDING * 2))
+    width = max(_VISUAL_MIN_BLOCK_WIDTH, min(width, canvas_width - (_EDITOR_CANVAS_PADDING * 2)))
+    height = _as_int(elem.get('height', 42), 42)
+    height = max(_VISUAL_MIN_BLOCK_HEIGHT, min(height, 720))
+
+    align = str(elem.get('align', 'left') or 'left').lower()
+    col = max(0, _as_int(elem.get('col', 0), 0))
+
+    if align == 'center':
+        default_x = max(_EDITOR_CANVAS_PADDING, int((canvas_width - width) / 2))
+    elif align == 'right':
+        default_x = canvas_width - width - _EDITOR_CANVAS_PADDING
+    else:
+        default_x = _EDITOR_CANVAS_PADDING + (col * 8)
+
+    default_x = max(_EDITOR_CANVAS_PADDING, min(default_x, canvas_width - width - _EDITOR_CANVAS_PADDING))
+    x = _as_int(elem.get('x', default_x), default_x)
+    x = max(_EDITOR_CANVAS_PADDING, min(x, canvas_width - width - _EDITOR_CANVAS_PADDING))
+
+    y = _as_int(elem.get('y', cursor_y), cursor_y)
+    y = max(_EDITOR_CANVAS_PADDING, y)
+
+    return x, y, width, height, max(cursor_y, y + height + 6)
+
+
+def _load_visual_font(style, size):
+    if ImageFont is None:
+        raise RuntimeError('Pillow is not installed')
+
+    style_key = str(style or 'normal').lower()
+    size_key = max(8, int(size))
+    cache_key = (style_key, size_key)
+    cached = _font_cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    candidates = []
+    if os.name == 'nt':
+        if style_key in ('bold', 'double', 'huge'):
+            candidates.extend([
+                r'C:\Windows\Fonts\consolab.ttf',
+                r'C:\Windows\Fonts\courbd.ttf',
+                r'C:\Windows\Fonts\lucon.ttf',
+            ])
+        candidates.extend([
+            r'C:\Windows\Fonts\consola.ttf',
+            r'C:\Windows\Fonts\cour.ttf',
+            r'C:\Windows\Fonts\lucon.ttf',
+        ])
+
+    for font_path in candidates:
+        if not os.path.exists(font_path):
+            continue
+        try:
+            font = ImageFont.truetype(font_path, size_key)
+            _font_cache[cache_key] = font
+            return font
+        except Exception:
+            continue
+
+    font = ImageFont.load_default()
+    _font_cache[cache_key] = font
+    return font
+
+
+def _measure_text_width(draw, text, font):
+    if not text:
+        return 0
+    left, top, right, bottom = draw.textbbox((0, 0), text, font=font)
+    return max(0, right - left)
+
+
+def _measure_line_height(draw, font):
+    left, top, right, bottom = draw.textbbox((0, 0), 'Ag', font=font)
+    return max(1, (bottom - top))
+
+
+def _field_allows_dynamic_height(field):
+    return str(field or '').strip().lower() in {'items_block', 'lines_block', 'payments_block'}
+
+
+def _style_font_metrics(style, max_height, field=''):
+    style_key = str(style or 'normal').lower()
+    scale = {
+        'normal': 0.56,
+        'bold': 0.60,
+        'double': 0.82,
+        'huge': 2.05,
+    }.get(style_key, 0.56)
+    size_ceiling = 140 if style_key == 'huge' else 96
+    max_font_size = max(10, min(size_ceiling, int(max_height * scale)))
+    max_font_size = min(max_font_size, _field_font_cap(field, style_key))
+    min_font_size = 8 if style_key == 'normal' else 10
+    return style_key, max_font_size, min_font_size
+
+
+def _text_block_padding(width, height, style):
+    style_key = str(style or 'normal').lower()
+    if style_key == 'huge':
+        return max(2, int(width * 0.015)), max(1, int(height * 0.02))
+    return max(4, int(width * 0.04)), max(3, int(height * 0.10))
+
+
+def _wrap_text_for_block(draw, text, font, max_width):
+    raw_lines = str(text or '').replace('\r\n', '\n').split('\n')
+    if not raw_lines:
+        return ['']
+
+    wrapped = []
+    for raw_line in raw_lines:
+        if raw_line == '':
+            wrapped.append('')
+            continue
+        remaining = raw_line
+        while remaining:
+            if _measure_text_width(draw, remaining, font) <= max_width:
+                wrapped.append(remaining)
+                break
+            cut = len(remaining)
+            while cut > 1 and _measure_text_width(draw, remaining[:cut], font) > max_width:
+                cut -= 1
+            if cut <= 0:
+                cut = 1
+            wrapped.append(remaining[:cut])
+            remaining = remaining[cut:]
+    return wrapped or ['']
+
+
+def _fit_text_to_block(draw, text, style, max_width, max_height, field=''):
+    max_width = max(12, int(max_width))
+    max_height = max(12, int(max_height))
+
+    style_key, max_font_size, min_font_size = _style_font_metrics(style, max_height, field=field)
+
+    fallback = None
+    for size in range(max_font_size, min_font_size - 1, -1):
+        font = _load_visual_font(style_key, size)
+        lines = _wrap_text_for_block(draw, text, font, max_width)
+        line_height = _measure_line_height(draw, font) + max(2, int(size * 0.2))
+        total_height = line_height * max(1, len(lines))
+        if total_height <= max_height:
+            return font, lines, line_height
+        fallback = (font, lines, line_height)
+
+    if fallback is not None:
+        return fallback
+    font = _load_visual_font(style_key, min_font_size)
+    return font, _wrap_text_for_block(draw, text, font, max_width), _measure_line_height(draw, font) + 2
+
+
+def _fit_text_with_growth(draw, text, style, max_width, base_height, field=''):
+    max_width = max(12, int(max_width))
+    base_height = max(12, int(base_height))
+    style_key, max_font_size, min_font_size = _style_font_metrics(style, base_height, field=field)
+
+    for size in range(max_font_size, min_font_size - 1, -1):
+        font = _load_visual_font(style_key, size)
+        lines = _wrap_text_for_block(draw, text, font, max_width)
+        line_height = _measure_line_height(draw, font) + max(2, int(size * 0.2))
+        if lines:
+            return font, lines, line_height
+
+    font = _load_visual_font(style_key, min_font_size)
+    return font, _wrap_text_for_block(draw, text, font, max_width), _measure_line_height(draw, font) + 2
+
+
+def _draw_separator_block(draw, rect):
+    left, top, width, height = rect
+    y = top + max(1, int(height / 2))
+    dash = 9
+    gap = 5
+    x = left + 4
+    right = left + width - 4
+    while x < right:
+        x2 = min(right, x + dash)
+        draw.line((x, y, x2, y), fill=0, width=1)
+        x = x2 + gap
+
+
+def _draw_text_block(draw, rect, text, align='left', style='normal', field=''):
+    if text is None:
+        return
+
+    left, top, width, height = rect
+    pad_x, pad_y = _text_block_padding(width, height, style)
+    content_width = max(12, width - (pad_x * 2))
+    content_height = max(12, height - (pad_y * 2))
+
+    if _field_allows_dynamic_height(field):
+        font, lines, line_height = _fit_text_with_growth(draw, str(text), style, content_width, content_height, field=field)
+    else:
+        font, lines, line_height = _fit_text_to_block(draw, str(text), style, content_width, content_height, field=field)
+    total_height = line_height * max(1, len(lines))
+    current_y = top + pad_y + max(0, int((content_height - total_height) / 2))
+
+    align_key = str(align or 'left').lower()
+    for line in lines:
+        line_width = _measure_text_width(draw, line, font)
+        if align_key == 'center':
+            x = left + int((width - line_width) / 2)
+        elif align_key == 'right':
+            x = left + width - pad_x - line_width
+        else:
+            x = left + pad_x
+        draw.text((x, current_y), line, fill=0, font=font)
+        current_y += line_height
+
+
+def _layout_visual_blocks(draw, blocks, scale):
+    ordered_blocks = sorted(blocks, key=lambda block: (block.get('y', 0), block.get('x', 0), block.get('order', 0)))
+    laid_out_blocks = []
+    cumulative_shift = 0
+
+    for block in ordered_blocks:
+        rect = (
+            int(block['x'] * scale),
+            int(block['y'] * scale) + cumulative_shift,
+            max(12, int(block['width'] * scale)),
+            max(12, int(block['height'] * scale)),
+        )
+
+        if _field_allows_dynamic_height(block.get('field')):
+            pad_x, pad_y = _text_block_padding(rect[2], rect[3], block.get('style', 'normal'))
+            content_width = max(12, rect[2] - (pad_x * 2))
+            content_height = max(12, rect[3] - (pad_y * 2))
+            _font, lines, line_height = _fit_text_with_growth(
+                draw,
+                str(block.get('text', '')),
+                block.get('style', 'normal'),
+                content_width,
+                content_height,
+                field=block.get('field', ''),
+            )
+            needed_height = max(rect[3], (pad_y * 2) + (line_height * max(1, len(lines))) + 2)
+            if needed_height > rect[3]:
+                extra_height = needed_height - rect[3]
+                rect = (rect[0], rect[1], rect[2], needed_height)
+                cumulative_shift += extra_height
+
+        laid_out_blocks.append({**block, 'rect': rect})
+
+    max_bottom = max((entry['rect'][1] + entry['rect'][3]) for entry in laid_out_blocks) if laid_out_blocks else 120
+    return laid_out_blocks, max_bottom
+
+
+def _render_visual_blocks(printer, blocks):
+    if Image is None or ImageDraw is None:
+        raise RuntimeError('Pillow is not installed')
+
+    paper_width = _printer_media_width_px(printer)
+    scale = float(paper_width) / float(_EDITOR_CANVAS_WIDTH)
+    metrics_image = Image.new('L', (paper_width, 64), 255)
+    metrics_draw = ImageDraw.Draw(metrics_image)
+    laid_out_blocks, max_bottom = _layout_visual_blocks(metrics_draw, blocks, scale)
+    paper_height = max(180, max_bottom + 32)
+
+    image = Image.new('L', (paper_width, paper_height), 255)
+    draw = ImageDraw.Draw(image)
+    laid_out_blocks, max_bottom = _layout_visual_blocks(draw, blocks, scale)
+
+    for entry in laid_out_blocks:
+        block = entry
+        rect = entry['rect']
+        if block.get('field') == 'blank':
+            continue
+        if block.get('field') == 'separator':
+            _draw_separator_block(draw, rect)
+            continue
+        _draw_text_block(
+            draw,
+            rect,
+            block.get('text', ''),
+            align=block.get('align', 'left'),
+            style=block.get('style', 'normal'),
+            field=block.get('field', ''),
+        )
+
+    crop_height = min(image.height, max_bottom + 4)
+    image = image.crop((0, 0, image.width, max(48, crop_height)))
+    final_image = image.point(lambda value: 0 if value < 192 else 255, mode='1')
+
+    printer.set(align='left', font='a', bold=False, height=1, width=1)
+    try:
+        printer.image(final_image, impl='bitImageRaster', center=False)
+    except Exception:
+        printer.image(final_image, impl='bitImageColumn', center=False)
+
+
 def _build_receipt_lines(payload, currency_symbol):
     lines = []
     for line in payload.get('lines', []):
@@ -1075,61 +1640,18 @@ def _build_receipt_lines(payload, currency_symbol):
     return lines
 
 
-def _build_kitchen_lines(payload):
-    lines = []
-    changes = payload.get('changes', {})
-    for section_name in ('new', 'cancelled', 'noteUpdate'):
-        for line in _as_line_list(changes.get(section_name, [])):
-            lines.append({
-                'qty': _signed_kitchen_qty(line, section_name),
-                'product': _extract_product_name(line),
-                'note': _extract_line_note(line),
-                'section': section_name,
-            })
-    for line in _as_line_list(changes.get('data', [])):
-        lines.append({
-            'qty': _signed_kitchen_qty(line, 'new'),
-            'product': _extract_product_name(line),
-            'note': _extract_line_note(line),
-            'section': 'new',
-        })
-    if not lines:
-        for line in _as_line_list(payload.get('orderlines', [])):
-            lines.append({
-                'qty': _signed_kitchen_qty(line, 'new'),
-                'product': _extract_product_name(line),
-                'note': _extract_line_note(line),
-                'section': 'new',
-            })
-    rendered = []
-    for line in lines:
-        section_name = line.get('section')
-        prefix = 'NOTE ' if section_name == 'noteUpdate' else ''
-        name = f"{prefix}{line['product']}"[:30]
-        rendered.append({'text': f"{_display_qty(line['qty']):<6}{name}", 'style': 'normal'})
-        if line['note']:
-            rendered.append({'text': f" >> {line['note']}", 'style': 'normal'})
-    return rendered
-
-
-def _render_receipt_template(printer, payload):
+def _build_receipt_template_context(payload):
     currency_symbol = payload.get('currency_symbol', '')
-    elements = _template_elements('receipt')
-
     table_label = payload.get('table') or '-'
     guest_label = payload.get('customer_count') or '-'
-    context = {
-        'company_name': payload.get('company_name', 'Odoo POS'),
-        'order_name_line': f"Ticket {payload.get('order_name', '')}" if payload.get('order_name') else '',
-        'date_line': f"{payload.get('date', '')[:19].replace('T', ' ')}" if payload.get('date') else '',
-        'cashier_line': f"Served by: {payload.get('cashier', '')}" if payload.get('cashier') else '',
-        'table_guests_line': f"Table: {table_label}  Guests: {guest_label}" if payload.get('table') or payload.get('customer_count') else '',
-        'tracking_number': payload.get('tracking_number') or '',
-        'subtotal_line': _left_right('Subtotal', _money(payload.get('subtotal', 0), currency_symbol)),
-        'tax_line': _left_right('Tax', _money(payload.get('tax', 0), currency_symbol)),
-        'total_line': _left_right('Total', _money(payload.get('total', 0), currency_symbol)),
+    elements = _template_elements('receipt')
+    label_overrides = {
+        str(elem.get('field') or '').strip(): str(elem.get('label') or '').strip()
+        for elem in elements
+        if isinstance(elem, dict) and str(elem.get('label') or '').strip()
     }
 
+    receipt_lines = _build_receipt_lines(payload, currency_symbol)
     payments_lines = []
     for payment in payload.get('payments', []):
         payments_lines.append({
@@ -1139,6 +1661,138 @@ def _render_receipt_template(printer, payload):
             ),
             'style': 'normal',
         })
+
+    context = {
+        'company_name': payload.get('company_name', 'Odoo POS'),
+        'order_name_line': f"{label_overrides.get('order_name_line', 'Ticket')} {payload.get('order_name', '')}".strip() if payload.get('order_name') else '',
+        'date_line': f"{payload.get('date', '')[:19].replace('T', ' ')}" if payload.get('date') else '',
+        'cashier_line': _label_value_text(label_overrides.get('cashier_line', 'Served by'), payload.get('cashier', '')) if payload.get('cashier') else '',
+        'table_guests_line': f"Table: {table_label}  Guests: {guest_label}" if payload.get('table') or payload.get('customer_count') else '',
+        'tracking_number': payload.get('tracking_number') or '',
+        'subtotal_line': _left_right(label_overrides.get('subtotal_line', 'Subtotal'), _money(payload.get('subtotal', 0), currency_symbol)),
+        'tax_line': _left_right(label_overrides.get('tax_line', 'Tax'), _money(payload.get('tax', 0), currency_symbol)),
+        'total_line': _left_right(label_overrides.get('total_line', 'Total'), _money(payload.get('total', 0), currency_symbol)),
+        'lines_block': '\n'.join(line.get('text', '') for line in receipt_lines),
+        'payments_block': '\n'.join(line.get('text', '') for line in payments_lines),
+    }
+    return context, receipt_lines, payments_lines
+
+
+def _build_receipt_visual_blocks(payload):
+    elements = _template_elements('receipt')
+    source_canvas_width = _visual_source_canvas_width('receipt', elements)
+    context, _, _ = _build_receipt_template_context(payload)
+    blocks = []
+    cursor_y = 52
+
+    for index, elem in enumerate(elements):
+        render_elem = _scaled_visual_elem(elem, source_canvas_width, _EDITOR_CANVAS_WIDTH)
+        x, y, width, height, cursor_y = _visual_block_rect(render_elem, cursor_y)
+        field = str(render_elem.get('field') or '').strip()
+        blocks.append({
+            'field': field,
+            'align': str(render_elem.get('align', 'left') or 'left'),
+            'style': str(render_elem.get('style', 'normal') or 'normal'),
+            'text': str(render_elem.get('text') or '') if field == 'static_text' else context.get(field, ''),
+            'x': x,
+            'y': y,
+            'width': width,
+            'height': height,
+            'order': _as_int(render_elem.get('order', index + 1), index + 1),
+        })
+
+    return blocks
+
+
+def _build_kitchen_template_context(payload):
+    elements = _template_elements('kitchen')
+    label_overrides = {
+        str(elem.get('field') or '').strip(): str(elem.get('label') or '').strip()
+        for elem in elements
+        if isinstance(elem, dict) and str(elem.get('label') or '').strip()
+    }
+    printer_label = _first_non_empty(
+        payload.get('printer_name'),
+        payload.get('route_printer'),
+        payload.get('printer'),
+        'Kitchen',
+    )
+    table_label = _first_non_empty(
+        payload.get('table'),
+        payload.get('table_name'),
+        payload.get('table_number'),
+        payload.get('table_id', {}).get('table_number') if isinstance(payload.get('table_id'), dict) else None,
+        payload.get('table_id', {}).get('name') if isinstance(payload.get('table_id'), dict) else None,
+    ) or 'N/A'
+    order_label = _first_non_empty(
+        payload.get('order'),
+        payload.get('order_name'),
+        payload.get('name'),
+        payload.get('tracking_number'),
+        payload.get('trackingNumber'),
+    )
+    waiter_label = _first_non_empty(
+        payload.get('waiter'),
+        payload.get('cashier'),
+        payload.get('server'),
+        payload.get('employee'),
+        payload.get('user'),
+    )
+
+    kitchen_lines = _build_kitchen_lines(payload)
+    context = {
+        'ticket_title': f"** {printer_label.upper()} ORDER **",
+        'table_big': f"{label_overrides.get('table_big', 'TABLE')} {table_label}".strip(),
+        'table_circle': f"({table_label})",
+        'printer_line': _label_value_text(label_overrides.get('printer_line', 'Printer'), printer_label),
+        'table_line': _label_value_text(label_overrides.get('table_line', 'Table'), table_label),
+        'order_line': _label_value_text(label_overrides.get('order_line', 'Order'), order_label),
+        'time_line': _label_value_text(label_overrides.get('time_line', 'Time'), datetime.now().strftime('%H:%M:%S')),
+        'waiter_line': _label_value_text(label_overrides.get('waiter_line', 'Waiter'), waiter_label) if waiter_label else '',
+        'items_block': '\n'.join(line.get('text', '') for line in kitchen_lines),
+    }
+    return context, kitchen_lines
+
+
+def _build_kitchen_visual_blocks(payload):
+    elements = _template_elements('kitchen')
+    source_canvas_width = _visual_source_canvas_width('kitchen', elements)
+    context, _ = _build_kitchen_template_context(payload)
+    blocks = []
+    cursor_y = 52
+
+    for index, elem in enumerate(elements):
+        render_elem = _scaled_visual_elem(elem, source_canvas_width, _EDITOR_CANVAS_WIDTH)
+        x, y, width, height, cursor_y = _visual_block_rect(render_elem, cursor_y)
+        field = str(render_elem.get('field') or '').strip()
+        blocks.append({
+            'field': field,
+            'align': str(render_elem.get('align', 'left') or 'left'),
+            'style': str(render_elem.get('style', 'normal') or 'normal'),
+            'text': str(render_elem.get('text') or '') if field == 'static_text' else context.get(field, ''),
+            'x': x,
+            'y': y,
+            'width': width,
+            'height': height,
+            'order': _as_int(render_elem.get('order', index + 1), index + 1),
+        })
+
+    return blocks
+
+
+
+def _render_receipt_template(printer, payload):
+    elements = _template_elements('receipt')
+    if _template_uses_visual_layout('receipt'):
+        try:
+            visual_blocks = _build_receipt_visual_blocks(payload)
+            _render_visual_blocks(printer, visual_blocks)
+            return
+        except Exception:
+            logger.exception('Visual receipt render failed; falling back to line renderer')
+
+    currency_symbol = payload.get('currency_symbol', '')
+    context, _, payments_lines = _build_receipt_template_context(payload)
 
     for elem in elements:
         field = elem.get('field')
@@ -1160,6 +1814,11 @@ def _render_receipt_template(printer, payload):
                 line_elem['style'] = l.get('style', line_elem.get('style', 'normal'))
                 _emit_template_line(printer, l.get('text', ''), line_elem)
             continue
+        if field == 'static_text':
+            value = str(elem.get('text') or '')
+            if value:
+                _emit_template_line(printer, value, elem)
+            continue
         value = context.get(field, '')
         if value:
             _emit_template_line(printer, value, elem)
@@ -1167,38 +1826,18 @@ def _render_receipt_template(printer, payload):
 
 def _render_kitchen_template(printer, payload):
     elements = _template_elements('kitchen')
-    printer_label = _first_non_empty(
-        payload.get('printer_name'),
-        payload.get('route_printer'),
-        payload.get('printer'),
-        'Kitchen',
-    )
-    table_label = _first_non_empty(
-        payload.get('table'),
-        payload.get('table_name'),
-        payload.get('table_number'),
-        payload.get('table_id', {}).get('table_number') if isinstance(payload.get('table_id'), dict) else None,
-        payload.get('table_id', {}).get('name') if isinstance(payload.get('table_id'), dict) else None,
-    ) or 'N/A'
-    order_label = _first_non_empty(
-        payload.get('order'),
-        payload.get('order_name'),
-        payload.get('name'),
-        payload.get('tracking_number'),
-        payload.get('trackingNumber'),
-    )
+    if _template_uses_visual_layout('kitchen'):
+        try:
+            visual_blocks = _build_kitchen_visual_blocks(payload)
+            _render_visual_blocks(printer, visual_blocks)
+            return
+        except Exception:
+            logger.exception('Visual kitchen render failed; falling back to line renderer')
 
-    context = {
-        'ticket_title': f"** {printer_label.upper()} ORDER **",
-        'table_big': f"TABLE {table_label}",
-        'table_circle': f"({table_label})",
-        'printer_line': f"Printer : {printer_label}",
-        'table_line': f"Table   : {table_label}",
-        'order_line': f"Order   : {order_label}",
-        'time_line': f"Time    : {datetime.now().strftime('%H:%M:%S')}",
-    }
+    context, kitchen_lines = _build_kitchen_template_context(payload)
 
-    kitchen_lines = _build_kitchen_lines(payload)
+    import json as _json
+    logger.info('[KITCHEN-DEBUG] raw changes payload: %s', _json.dumps(payload.get('changes', {}), ensure_ascii=False, default=str))
 
     for elem in elements:
         field = elem.get('field')
@@ -1213,6 +1852,11 @@ def _render_kitchen_template(printer, payload):
                 line_elem = dict(elem)
                 line_elem['style'] = l.get('style', line_elem.get('style', 'normal'))
                 _emit_template_line(printer, l.get('text', ''), line_elem)
+            continue
+        if field == 'static_text':
+            value = str(elem.get('text') or '')
+            if value:
+                _emit_template_line(printer, value, elem)
             continue
         value = context.get(field, '')
         if value:
@@ -1249,7 +1893,6 @@ def format_receipt(data: str, printer_type: str, printer) -> None:
         printer.set(align='left', font='a', bold=False, height=1, width=1)
         printer.text(data + '\n')
 
-    printer.text('\n\n\n')
     try:
         printer.cut(mode='FULL')
     except Exception:
@@ -1313,6 +1956,7 @@ def process_pending_jobs(odoo: OdooConnection) -> None:
             job_name,
             printer_type,
         )
+        logger.info('RAW ODOO PAYLOAD: %s', data)
 
         try:
             print_with_route(data, printer_type, route_printer)
@@ -1460,6 +2104,7 @@ def main():
                         printer_type = body.get('printer_type', 'receipt')
                         route_printer = _resolve_printer_name(body)
                         logger.info('Push received: type=%s route_printer=%s keys=%s', printer_type, route_printer, list(body.keys()))
+                        logger.info('RAW HTTP PAYLOAD: %s', data)
                         if not data:
                             self._write_json(400, {'success': False, 'error': 'no data'})
                             return

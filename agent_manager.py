@@ -7,6 +7,8 @@ Controls print_agent.py through local HTTP API (127.0.0.1:8899).
 import json
 import os
 import subprocess
+import sys
+import tempfile
 import tkinter as tk
 from tkinter import messagebox, simpledialog, ttk
 from urllib.error import URLError
@@ -45,6 +47,7 @@ def default_templates():
                 {"field": "table_line", "align": "left", "style": "normal", "col": 0},
                 {"field": "order_line", "align": "left", "style": "normal", "col": 0},
                 {"field": "time_line", "align": "left", "style": "normal", "col": 0},
+                {"field": "waiter_line", "align": "left", "style": "normal", "col": 0},
                 {"field": "separator", "align": "left", "style": "normal", "col": 0},
                 {"field": "items_block", "align": "left", "style": "normal", "col": 0},
                 {"field": "separator", "align": "left", "style": "normal", "col": 0},
@@ -67,6 +70,7 @@ TEMPLATE_FIELDS = {
         "tax_line",
         "total_line",
         "payments_block",
+        "static_text",
         "blank",
     ],
     "kitchen": [
@@ -77,8 +81,10 @@ TEMPLATE_FIELDS = {
         "table_line",
         "order_line",
         "time_line",
+        "waiter_line",
         "separator",
         "items_block",
+        "static_text",
         "blank",
     ],
 }
@@ -117,12 +123,15 @@ class TemplateElementDialog(tk.Toplevel):
         self.var_align = tk.StringVar(value=initial.get("align", "left"))
         self.var_style = tk.StringVar(value=initial.get("style", "normal"))
         self.var_col = tk.StringVar(value=str(initial.get("col", 0)))
+        self.var_text = tk.StringVar(value=initial.get("text", ""))
 
         pad = {"padx": 8, "pady": 5}
         ttk.Label(self, text="Field").grid(row=0, column=0, sticky="w", **pad)
-        ttk.Combobox(self, textvariable=self.var_field, values=fields, width=26, state="readonly").grid(
+        field_combo = ttk.Combobox(self, textvariable=self.var_field, values=fields, width=26, state="readonly")
+        field_combo.grid(
             row=0, column=1, sticky="w", **pad
         )
+        field_combo.bind("<<ComboboxSelected>>", lambda _e: self._update_text_state())
 
         ttk.Label(self, text="Align").grid(row=1, column=0, sticky="w", **pad)
         ttk.Combobox(self, textvariable=self.var_align, values=["left", "center", "right"], width=26, state="readonly").grid(
@@ -130,19 +139,30 @@ class TemplateElementDialog(tk.Toplevel):
         )
 
         ttk.Label(self, text="Style").grid(row=2, column=0, sticky="w", **pad)
-        ttk.Combobox(self, textvariable=self.var_style, values=["normal", "bold", "double"], width=26, state="readonly").grid(
+        ttk.Combobox(self, textvariable=self.var_style, values=["normal", "bold", "double", "huge"], width=26, state="readonly").grid(
             row=2, column=1, sticky="w", **pad
         )
 
         ttk.Label(self, text="Left Offset (col)").grid(row=3, column=0, sticky="w", **pad)
         ttk.Entry(self, textvariable=self.var_col, width=28).grid(row=3, column=1, sticky="w", **pad)
 
+        ttk.Label(self, text="Custom Text").grid(row=4, column=0, sticky="nw", **pad)
+        self.entry_text = tk.Text(self, width=28, height=4, wrap="word")
+        self.entry_text.grid(row=4, column=1, sticky="w", **pad)
+        if self.var_text.get():
+            self.entry_text.insert("1.0", self.var_text.get())
+
         btns = ttk.Frame(self)
-        btns.grid(row=4, column=0, columnspan=2, sticky="e", padx=8, pady=10)
+        btns.grid(row=5, column=0, columnspan=2, sticky="e", padx=8, pady=10)
         ttk.Button(btns, text="Cancel", command=self.destroy).pack(side=tk.RIGHT, padx=4)
         ttk.Button(btns, text="Save", command=self._save).pack(side=tk.RIGHT, padx=4)
 
+        self._update_text_state()
         self.wait_window(self)
+
+    def _update_text_state(self):
+        is_static_text = self.var_field.get().strip() == "static_text"
+        self.entry_text.configure(state=(tk.NORMAL if is_static_text else tk.DISABLED))
 
     def _save(self):
         try:
@@ -150,12 +170,15 @@ class TemplateElementDialog(tk.Toplevel):
         except ValueError:
             messagebox.showwarning("Validation", "Left offset must be a number.", parent=self)
             return
+        text_value = self.entry_text.get("1.0", tk.END).strip() if self.var_field.get().strip() == "static_text" else ""
         self.result = {
             "field": self.var_field.get().strip(),
             "align": self.var_align.get().strip() or "left",
             "style": self.var_style.get().strip() or "normal",
             "col": max(0, col),
         }
+        if self.result["field"] == "static_text":
+            self.result["text"] = text_value
         self.destroy()
 
 
@@ -232,7 +255,13 @@ class TemplateEditorWindow(tk.Toplevel):
         align = elem.get("align", "left")
         style = elem.get("style", "normal")
         col = elem.get("col", 0)
-        return f"{idx+1:02d}. {field:18} | align={align:6} | style={style:6} | col={col}"
+        text_suffix = ""
+        if field == "static_text":
+            text_preview = str(elem.get("text", "") or "").strip().replace("\n", " ")
+            if len(text_preview) > 18:
+                text_preview = text_preview[:18] + "..."
+            text_suffix = f" | text={text_preview}"
+        return f"{idx+1:02d}. {field:18} | align={align:6} | style={style:6} | col={col}{text_suffix}"
 
     def _preview_label(self, field):
         sample = {
@@ -255,7 +284,9 @@ class TemplateEditorWindow(tk.Toplevel):
             "table_line": "Table   : 2",
             "order_line": "Order   : 3006",
             "time_line": "Time    : 19:12:51",
+            "waiter_line": "Waiter  : Administrator",
             "items_block": " -2  Coca-Cola",
+            "static_text": "Custom note here",
             "blank": "",
         }
         return sample.get(field, field)
@@ -263,7 +294,7 @@ class TemplateEditorWindow(tk.Toplevel):
     def _refresh_preview(self):
         lines = []
         for elem in self._elements():
-            label = self._preview_label(elem.get("field"))
+            label = str(elem.get("text", "") or "") if elem.get("field") == "static_text" else self._preview_label(elem.get("field"))
             try:
                 col = max(0, int(elem.get("col", 0)))
             except (TypeError, ValueError):
@@ -356,6 +387,7 @@ class AgentManagerApp(tk.Tk):
         super().__init__()
         self.base_dir = os.path.dirname(os.path.abspath(__file__))
         self.restart_script = os.path.join(self.base_dir, "deploy", "windows", "restart_service.ps1")
+        self.template_editor_host = os.path.join(self.base_dir, "template_editor_host.py")
         self.local_log_files = [
             os.path.join(self.base_dir, "print_agent.log"),
             os.path.join(self.base_dir, "print_agent_service_stdout.log"),
@@ -445,7 +477,7 @@ class AgentManagerApp(tk.Tk):
         ttk.Button(btns, text="Edit Printer", command=self.edit_route).pack(side=tk.LEFT, padx=4)
         ttk.Button(btns, text="Delete Printer", command=self.delete_route).pack(side=tk.LEFT, padx=4)
         ttk.Button(btns, text="Test Selected Printer", command=self.test_selected).pack(side=tk.LEFT, padx=4)
-        ttk.Button(btns, text="Template Editor", command=self.open_template_editor).pack(side=tk.LEFT, padx=4)
+        ttk.Button(btns, text="Visual Template Editor", command=self.open_template_editor).pack(side=tk.LEFT, padx=4)
         ttk.Button(btns, text="View Logs", command=self.view_logs).pack(side=tk.LEFT, padx=4)
         ttk.Button(btns, text="Save Config", command=self.save_config).pack(side=tk.RIGHT, padx=4)
         ttk.Button(btns, text="Restart Agent", command=self.restart_agent).pack(side=tk.RIGHT, padx=4)
@@ -625,10 +657,70 @@ class AgentManagerApp(tk.Tk):
             self._set_status("Save failed")
 
     def open_template_editor(self):
-        editor = TemplateEditorWindow(self, self.templates)
-        if editor.saved:
-            self.templates = editor.templates
-            self._set_status("Templates updated (click Save Config to apply)")
+        session_payload = {
+            "templates": self.templates,
+            "ticket_type": "receipt",
+            "saved": False,
+        }
+        session_path = None
+        try:
+            with tempfile.NamedTemporaryFile("w", delete=False, suffix=".json", encoding="utf-8") as handle:
+                json.dump(session_payload, handle, ensure_ascii=False, indent=2)
+                session_path = handle.name
+
+            if not os.path.exists(self.template_editor_host):
+                raise RuntimeError(f"template_editor_host.py not found at {self.template_editor_host}")
+
+            proc = subprocess.run(
+                [sys.executable, self.template_editor_host, session_path],
+                capture_output=True,
+                text=True,
+                timeout=3600,
+                check=False,
+            )
+
+            result = {}
+            if session_path and os.path.exists(session_path):
+                with open(session_path, "r", encoding="utf-8") as handle:
+                    result = json.load(handle)
+
+            if proc.returncode != 0:
+                error_text = (result.get("error") or proc.stderr or proc.stdout or "").strip()
+                raise RuntimeError(error_text or f"Visual editor exited with code {proc.returncode}")
+
+            if result.get("saved"):
+                self.templates = result.get("templates", {}) or default_templates()
+                try:
+                    payload = self.build_config_payload()
+                    http_post("/api/config", payload)
+                    self._set_status("Templates saved to agent")
+                except Exception as save_exc:
+                    self._set_status("Templates updated locally (click Save Config to apply)")
+                    messagebox.showwarning(
+                        "Template Saved Locally",
+                        "The template was saved in the manager, but it could not be pushed to the agent yet.\n\n"
+                        f"{save_exc}\n\n"
+                        "Click Save Config after the agent is available.",
+                    )
+            else:
+                self._set_status("Template edit cancelled")
+        except Exception as exc:
+            messagebox.showwarning(
+                "Visual Editor Unavailable",
+                "Could not open the visual template editor.\n\n"
+                f"{exc}\n\n"
+                "Opening the legacy text editor instead.",
+            )
+            editor = TemplateEditorWindow(self, self.templates)
+            if editor.saved:
+                self.templates = editor.templates
+                self._set_status("Templates updated (click Save Config to apply)")
+        finally:
+            if session_path and os.path.exists(session_path):
+                try:
+                    os.remove(session_path)
+                except OSError:
+                    pass
 
     def test_selected(self):
         selected = self.tree.selection()

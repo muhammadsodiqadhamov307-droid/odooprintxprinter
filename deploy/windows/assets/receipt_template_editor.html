@@ -1,0 +1,1419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Receipt Template Editor</title>
+    <style>
+        :root {
+            --bg: #1b1f24;
+            --panel: rgba(20, 24, 29, 0.84);
+            --panel-border: rgba(255, 255, 255, 0.09);
+            --ink: #f4efe3;
+            --muted: #bac0c6;
+            --accent: #ff8f3f;
+            --accent-soft: rgba(255, 143, 63, 0.14);
+            --paper: #f9f5ec;
+            --paper-edge: #d6cabb;
+            --selected: #2f9cff;
+            --selected-soft: rgba(47, 156, 255, 0.16);
+            --shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+            --paper-width: 420px;
+            --handle-size: 10px;
+        }
+
+        * { box-sizing: border-box; }
+        html, body {
+            margin: 0;
+            min-height: 100%;
+            font-family: "Aptos", "Bahnschrift", "Trebuchet MS", "Segoe UI", sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at top left, rgba(255, 143, 63, 0.16), transparent 30%),
+                radial-gradient(circle at top right, rgba(47, 156, 255, 0.1), transparent 32%),
+                linear-gradient(145deg, #13171b 0%, #1f252d 55%, #171b20 100%);
+            overflow: hidden;
+        }
+
+        body, .app-shell, .sidebar, .stage { display: flex; }
+        body { width: 100%; }
+        .app-shell {
+            flex-direction: column;
+            width: 100%;
+            height: 100vh;
+            padding: 18px;
+            gap: 14px;
+        }
+
+        .topbar, .sidebar, .stage {
+            border: 1px solid var(--panel-border);
+            border-radius: 24px;
+            background: var(--panel);
+            backdrop-filter: blur(14px);
+            box-shadow: var(--shadow);
+        }
+
+        .topbar {
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            padding: 18px 20px;
+        }
+
+        .topbar h1 { margin: 0 0 4px; font-size: 1.55rem; }
+        .topbar p, .panel-section p, .panel-section small, .stage-header p { margin: 0; color: var(--muted); }
+        .topbar-actions, .inspector-actions, .export-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .status-pill, .receipt-count {
+            padding: 10px 14px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--muted);
+            font-size: 0.88rem;
+        }
+
+        .btn, .segmented button {
+            border: 0;
+            border-radius: 14px;
+            padding: 11px 16px;
+            cursor: pointer;
+            font: inherit;
+            transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+            min-width: 0;
+        }
+
+        .btn:hover, .palette-card:hover { transform: translateY(-1px); }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent) 0%, #ffb36f 100%);
+            color: #1d140d;
+            box-shadow: 0 10px 26px rgba(255, 143, 63, 0.24);
+            font-weight: 700;
+        }
+
+        .btn-secondary, .segmented button {
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--ink);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .btn-danger {
+            background: rgba(255, 90, 90, 0.12);
+            color: #ffb5b5;
+            border: 1px solid rgba(255, 116, 116, 0.18);
+        }
+
+        .workspace {
+            min-height: 0;
+            display: grid;
+            grid-template-columns: 380px minmax(0, 1fr);
+            gap: 14px;
+            flex: 1;
+        }
+
+        .sidebar, .stage { min-height: 0; overflow: hidden; }
+        .sidebar { flex-direction: column; }
+        .sidebar-scroll {
+            overflow: auto;
+            padding: 18px 22px 18px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            scrollbar-gutter: stable;
+        }
+
+        .panel-section {
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 16px;
+            min-width: 0;
+        }
+
+        .panel-section h2, .stage-header h2 { margin: 0 0 6px; font-size: 1rem; }
+        .palette-list, .inspector-grid, .control-group { display: grid; gap: 12px; min-width: 0; }
+        .palette-list { margin-top: 14px; }
+        .palette-card {
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 16px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.05));
+            padding: 12px 14px;
+            cursor: grab;
+        }
+
+        .palette-card strong { display: block; font-size: 0.98rem; color: #fff6ea; }
+        .palette-card span, .export-output, .text-input {
+            display: block;
+            margin-top: 4px;
+            font-family: "Consolas", "Courier New", monospace;
+            font-size: 0.82rem;
+            white-space: pre-wrap;
+            line-height: 1.4;
+        }
+
+        .selected-name, .number-row input, .export-output, .text-input, .label-input {
+            width: 100%;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(6, 9, 13, 0.46);
+            color: var(--ink);
+            padding: 12px;
+            min-width: 0;
+        }
+
+        .text-input {
+            min-height: 92px;
+            resize: vertical;
+        }
+
+        .label-input {
+            min-height: 44px;
+        }
+
+        .selected-name { display: inline-flex; align-items: center; min-height: 44px; font-weight: 700; }
+        .control-group label, .helper-text {
+            color: var(--muted);
+            font-size: 0.84rem;
+        }
+
+        .segmented { display: grid; gap: 8px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .segmented button {
+            padding: 10px 8px;
+            white-space: nowrap;
+            text-align: center;
+        }
+        #styleControls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .segmented button.is-active {
+            border-color: rgba(255, 179, 111, 0.7);
+            background: var(--accent-soft);
+            color: #fff4e7;
+        }
+
+        .number-row {
+            display: grid;
+            gap: 8px;
+            grid-template-columns: 1fr;
+            align-items: stretch;
+        }
+
+        .number-row .helper-text {
+            line-height: 1.35;
+        }
+
+        .export-output { min-height: 180px; resize: vertical; }
+        .stage { flex-direction: column; min-width: 0; }
+        .stage-header {
+            padding: 18px 20px 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .stage-scroller {
+            flex: 1;
+            min-height: 0;
+            overflow: auto;
+            padding: 20px;
+            background:
+                radial-gradient(circle at 15% 20%, rgba(255, 143, 63, 0.08), transparent 28%),
+                linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0));
+        }
+
+        .receipt-shell {
+            min-width: calc(var(--paper-width) + 80px);
+            display: flex;
+            justify-content: center;
+            padding: 6px 20px 24px;
+        }
+
+        .receipt-paper {
+            position: relative;
+            width: var(--paper-width);
+            min-height: 620px;
+            border-radius: 18px;
+            border: 1px solid var(--paper-edge);
+            background:
+                repeating-linear-gradient(180deg, transparent 0, transparent 27px, rgba(32, 24, 15, 0.06) 27px, rgba(32, 24, 15, 0.06) 28px),
+                linear-gradient(180deg, #fffdf8 0%, var(--paper) 100%);
+            box-shadow: 0 26px 56px rgba(0, 0, 0, 0.24);
+            overflow: hidden;
+        }
+
+        .paper-top, .drop-hint {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            pointer-events: none;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .paper-top { top: 10px; color: rgba(49, 41, 33, 0.55); font-size: 0.7rem; }
+        .drop-hint {
+            top: 56px;
+            padding: 10px 14px;
+            border-radius: 999px;
+            background: rgba(16, 21, 28, 0.78);
+            color: #fff8f0;
+            font-size: 0.74rem;
+        }
+
+        .receipt-block {
+            position: absolute;
+            border: 1px solid rgba(72, 57, 35, 0.34);
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.90);
+            box-shadow: 0 10px 22px rgba(42, 30, 14, 0.12);
+            overflow: visible;
+            user-select: none;
+            touch-action: none;
+        }
+
+        .receipt-block.is-selected {
+            border: 2px solid var(--selected);
+            background: linear-gradient(180deg, rgba(47, 156, 255, 0.08), rgba(255, 255, 255, 0.72));
+            box-shadow: 0 0 0 3px var(--selected-soft), 0 16px 26px rgba(11, 45, 81, 0.18);
+            z-index: 99 !important;
+        }
+
+        .block-meta {
+            position: absolute;
+            top: -12px;
+            left: 8px;
+            right: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            padding: 0;
+            font-size: 0.72rem;
+            color: rgba(40, 32, 24, 0.94);
+            pointer-events: none;
+        }
+
+        .block-order {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 22px;
+            min-height: 22px;
+            padding: 0 6px;
+            border-radius: 999px;
+            background: rgba(245, 237, 223, 0.96);
+            border: 1px solid rgba(72, 57, 35, 0.14);
+            font-weight: 700;
+        }
+
+        .block-namechip {
+            display: inline-flex;
+            align-items: center;
+            min-height: 22px;
+            padding: 0 8px;
+            border-radius: 999px;
+            background: rgba(245, 237, 223, 0.96);
+            border: 1px solid rgba(72, 57, 35, 0.14);
+            font-weight: 600;
+        }
+
+        .block-preview {
+            height: 100%;
+            padding: 10px;
+            color: #17110a;
+            overflow: hidden;
+            font-family: "Consolas", "Courier New", monospace;
+            line-height: 1.25;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+        }
+
+        .block-preview-text {
+            width: 100%;
+            white-space: pre-wrap;
+        }
+
+        .block-preview.is-placeholder {
+            color: rgba(37, 28, 17, 0.52);
+            font-style: italic;
+        }
+
+        .align-left { text-align: left; justify-content: flex-start; }
+        .align-center { text-align: center; justify-content: center; }
+        .align-right { text-align: right; justify-content: flex-end; }
+        .style-normal { font-weight: 500; }
+        .style-bold, .style-double, .style-huge { font-weight: 800; }
+        .style-double { letter-spacing: 0.04em; }
+        .style-huge { letter-spacing: 0.06em; }
+
+        .resize-handle {
+            position: absolute;
+            width: var(--handle-size);
+            height: var(--handle-size);
+            border-radius: 999px;
+            background: var(--selected);
+            border: 2px solid white;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .receipt-block.is-selected .resize-handle { opacity: 1; pointer-events: auto; }
+        .resize-handle[data-handle="nw"] { top: -6px; left: -6px; cursor: nwse-resize; }
+        .resize-handle[data-handle="n"]  { top: -6px; left: calc(50% - 5px); cursor: ns-resize; }
+        .resize-handle[data-handle="ne"] { top: -6px; right: -6px; cursor: nesw-resize; }
+        .resize-handle[data-handle="e"]  { top: calc(50% - 5px); right: -6px; cursor: ew-resize; }
+        .resize-handle[data-handle="se"] { bottom: -6px; right: -6px; cursor: nwse-resize; }
+        .resize-handle[data-handle="s"]  { bottom: -6px; left: calc(50% - 5px); cursor: ns-resize; }
+        .resize-handle[data-handle="sw"] { bottom: -6px; left: -6px; cursor: nesw-resize; }
+        .resize-handle[data-handle="w"]  { top: calc(50% - 5px); left: -6px; cursor: ew-resize; }
+
+        .drag-ghost, .empty-state {
+            position: fixed;
+            border-radius: 14px;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
+            pointer-events: none;
+        }
+
+        .drag-ghost {
+            top: 0;
+            left: 0;
+            z-index: 1200;
+            padding: 10px 14px;
+            border: 1px solid rgba(255, 179, 111, 0.5);
+            background: rgba(17, 20, 25, 0.92);
+            color: #fff4e7;
+            font-weight: 700;
+            transform: translate(-9999px, -9999px);
+        }
+
+        .empty-state {
+            position: absolute;
+            inset: 92px 18px auto;
+            padding: 16px;
+            border: 1px dashed rgba(65, 54, 39, 0.28);
+            color: rgba(33, 23, 13, 0.66);
+            background: rgba(255, 255, 255, 0.44);
+            text-align: center;
+        }
+
+        @media (max-width: 1080px) {
+            body { overflow: auto; }
+            .app-shell { height: auto; min-height: 100vh; }
+            .workspace { grid-template-columns: 1fr; }
+            .stage { min-height: 720px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-shell">
+        <header class="topbar">
+            <div>
+                <h1>Visual Template Editor</h1>
+                <p>Drag fields onto the paper, resize blocks, and save a visual layout back into the app.</p>
+            </div>
+            <div class="topbar-actions">
+                <div class="status-pill" id="statusLine">Ready</div>
+                <button class="btn btn-secondary" id="copyButton" type="button">Copy JSON</button>
+                <button class="btn btn-secondary" id="resetButton" type="button">Reset Default</button>
+                <button class="btn btn-primary" id="saveButton" type="button">Save to Manager</button>
+            </div>
+        </header>
+
+        <main class="workspace">
+            <aside class="sidebar">
+                <div class="sidebar-scroll">
+                    <section class="panel-section">
+                        <h2>Template Type</h2>
+                        <p>Switch between receipt and kitchen layouts without leaving the editor.</p>
+                        <div class="control-group">
+                            <label for="ticketTypeSelect">Active canvas</label>
+                            <select class="selected-name" id="ticketTypeSelect">
+                                <option value="receipt">Receipt</option>
+                                <option value="kitchen">Kitchen</option>
+                            </select>
+                        </div>
+                    </section>
+
+                    <section class="panel-section">
+                        <h2>Field Palette</h2>
+                        <p>Drag any field from this palette and drop it onto the receipt canvas.</p>
+                        <div class="palette-list" id="paletteList"></div>
+                    </section>
+
+                    <section class="panel-section">
+                        <h2>Selected Field</h2>
+                        <p>Use these controls to style the active block on the paper.</p>
+                        <div class="inspector-grid">
+                            <div class="control-group">
+                                <label>Field</label>
+                                <div class="selected-name" id="selectedFieldName">Nothing selected</div>
+                            </div>
+                            <div class="control-group">
+                                <label>Alignment</label>
+                                <div class="segmented" id="alignControls">
+                                    <button type="button" data-align="left">Left</button>
+                                    <button type="button" data-align="center">Center</button>
+                                    <button type="button" data-align="right">Right</button>
+                                </div>
+                            </div>
+                            <div class="control-group">
+                                <label>Font Style</label>
+                                <div class="segmented" id="styleControls">
+                                    <button type="button" data-style="normal">Normal</button>
+                                    <button type="button" data-style="bold">Bold</button>
+                                    <button type="button" data-style="double">Double</button>
+                                    <button type="button" data-style="huge">Huge</button>
+                                </div>
+                            </div>
+                            <div class="control-group">
+                                <label>Column Offset</label>
+                                <div class="number-row">
+                                    <input id="colInput" type="number" min="0" max="30" step="1" value="0">
+                                    <span class="helper-text">Approx. left shift in receipt columns</span>
+                                </div>
+                            </div>
+                            <div class="control-group">
+                                <label for="fieldLabelInput">Field Label</label>
+                                <input class="label-input" id="fieldLabelInput" type="text" placeholder="Edit printed labels like TABLE, Order, or Time." disabled>
+                                <small class="helper-text" id="fieldLabelHint">Select a label-based field to rename only its printed label.</small>
+                            </div>
+                            <div class="control-group">
+                                <label for="customTextInput">Custom Text</label>
+                                <textarea class="text-input" id="customTextInput" placeholder="Drag a Custom Text block here, then type the exact text you want to print." disabled></textarea>
+                                <small class="helper-text" id="customTextHint">Select a Custom Text block to edit its text.</small>
+                            </div>
+                            <div class="inspector-actions">
+                                <button class="btn btn-danger" id="deleteButton" type="button">Delete Field</button>
+                            </div>
+                            <small class="helper-text">Drag a selected block to reorder vertically. Resize handles change the live preview scale.</small>
+                        </div>
+                    </section>
+
+                    <section class="panel-section">
+                        <h2>Export</h2>
+                        <p>Export shows the active template as a JSON array sorted by visual order.</p>
+                        <textarea class="export-output" id="exportOutput" readonly spellcheck="false"></textarea>
+                        <div class="export-actions">
+                            <small class="helper-text">Output includes exact block position and size for future visual round-tripping.</small>
+                            <small class="helper-text" id="countHint">0 fields</small>
+                        </div>
+                    </section>
+                </div>
+            </aside>
+
+            <section class="stage">
+                <div class="stage-header">
+                    <div>
+                        <h2 id="stageTitle">Receipt Canvas</h2>
+                        <p id="stageSubtitle">80mm thermal-paper preview, matched to a wider receipt width.</p>
+                    </div>
+                    <div class="receipt-count" id="receiptCount">0 blocks</div>
+                </div>
+                <div class="stage-scroller">
+                    <div class="receipt-shell">
+                        <div class="receipt-paper" id="receiptPaper">
+                            <div class="paper-top">Receipt Paper</div>
+                            <div class="drop-hint" id="dropHint">Drop fields here</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div class="drag-ghost" id="dragGhost"></div>
+
+    <script>
+        const LEGACY_PAPER_WIDTH = 300;
+        const PAPER_WIDTH = 420;
+        const PAPER_PADDING = 12;
+        const PAPER_MIN_HEIGHT = 620;
+        const GRID_SIZE = 8;
+        const MIN_BLOCK_WIDTH = 110;
+        const MIN_BLOCK_HEIGHT = 40;
+        const MAX_BLOCK_HEIGHT = 360;
+
+        const BOOTSTRAP = window.__TEMPLATE_EDITOR_BOOTSTRAP__ || {};
+
+        const TEMPLATE_LIBRARY = {
+            receipt: {
+                label: "Receipt",
+                subtitle: "80mm thermal-paper preview, matched to a wider receipt width.",
+                fields: {
+                    company_name: { label: "Company Name", sample: "ODOO CAFE", width: 248, height: 70, align: "center", style: "double" },
+                    order_name_line: { label: "Order Name", sample: "Ticket POS/00045", width: 248, height: 48, align: "center", style: "normal" },
+                    date_line: { label: "Date", sample: "2026-03-28 19:12:00", width: 248, height: 42, align: "center", style: "normal" },
+                    cashier_line: { label: "Cashier", sample: "Served by: Administrator", width: 248, height: 42, align: "center", style: "normal" },
+                    table_guests_line: { label: "Table and Guests", sample: "Table: 7  Guests: 4", width: 248, height: 46, align: "center", style: "normal" },
+                    tracking_number: { label: "Tracking Number", sample: "A104", width: 232, height: 62, align: "center", style: "double" },
+                    separator: { label: "Separator", sample: "------------------------------------------", width: 258, height: 34, align: "left", style: "normal" },
+                    lines_block: { label: "Order Lines", sample: "1 Club Sandwich        6.80 so'm\n2 Lemon Tea            8.00 so'm", width: 262, height: 96, align: "left", style: "normal" },
+                    subtotal_line: { label: "Subtotal", sample: "Subtotal              14.80 so'm", width: 258, height: 40, align: "left", style: "normal" },
+                    tax_line: { label: "Tax", sample: "Tax                    2.22 so'm", width: 258, height: 40, align: "left", style: "normal" },
+                    total_line: { label: "Total", sample: "Total                 17.02 so'm", width: 258, height: 48, align: "left", style: "bold" },
+                    payments_block: { label: "Payments", sample: "Cash                  10.00 so'm\nCard                   7.02 so'm", width: 258, height: 82, align: "left", style: "normal" },
+                    static_text: { label: "Custom Text", sample: "Thank you for dining with us!", width: 258, height: 60, align: "center", style: "normal" },
+                    blank: { label: "Blank Space", sample: "", width: 258, height: 34, align: "left", style: "normal" },
+                },
+                defaults: [
+                    { name: "company_name", align: "center", style: "double", col: 0 },
+                    { name: "order_name_line", align: "center", style: "normal", col: 0 },
+                    { name: "date_line", align: "center", style: "normal", col: 0 },
+                    { name: "cashier_line", align: "center", style: "normal", col: 0 },
+                    { name: "table_guests_line", align: "center", style: "normal", col: 0 },
+                    { name: "tracking_number", align: "center", style: "double", col: 0 },
+                    { name: "separator", align: "left", style: "normal", col: 0 },
+                    { name: "lines_block", align: "left", style: "normal", col: 0 },
+                    { name: "separator", align: "left", style: "normal", col: 0 },
+                    { name: "subtotal_line", align: "left", style: "normal", col: 0 },
+                    { name: "tax_line", align: "left", style: "normal", col: 0 },
+                    { name: "total_line", align: "left", style: "bold", col: 0 },
+                    { name: "payments_block", align: "left", style: "normal", col: 0 },
+                ],
+            },
+            kitchen: {
+                label: "Kitchen",
+                subtitle: "Preparation-ticket preview using the same wider 80mm receipt paper.",
+                fields: {
+                    table_big: { label: "Table Big", sample: "TABLE 7", width: 228, height: 62, align: "center", style: "double" },
+                    table_circle: { label: "Table Circle", sample: "(7)", width: 148, height: 34, align: "center", style: "normal" },
+                    ticket_title: { label: "Ticket Title", sample: "** BAR ORDER **", width: 232, height: 44, align: "center", style: "normal" },
+                    printer_line: { label: "Printer Line", sample: "Printer : Bar", width: 250, height: 34, align: "left", style: "normal" },
+                    table_line: { label: "Table Line", sample: "Table   : 7", width: 250, height: 34, align: "left", style: "normal" },
+                    order_line: { label: "Order Line", sample: "Order   : 3011", width: 250, height: 34, align: "left", style: "normal" },
+                    time_line: { label: "Time Line", sample: "Time    : 20:14:19", width: 250, height: 34, align: "left", style: "normal" },
+                    waiter_line: { label: "Waiter Line", sample: "Waiter  : Administrator", width: 250, height: 34, align: "left", style: "normal" },
+                    separator: { label: "Separator", sample: "------------------------------------------", width: 258, height: 34, align: "left", style: "normal" },
+                    items_block: { label: "Items Block", sample: "-3 Water\n+2 Lemon Tea", width: 262, height: 78, align: "left", style: "normal" },
+                    static_text: { label: "Custom Text", sample: "Pickup from the bar", width: 258, height: 54, align: "center", style: "normal" },
+                    blank: { label: "Blank Space", sample: "", width: 258, height: 34, align: "left", style: "normal" },
+                },
+                defaults: [
+                    { name: "table_big", align: "center", style: "double", col: 0 },
+                    { name: "table_circle", align: "center", style: "normal", col: 0 },
+                    { name: "ticket_title", align: "center", style: "normal", col: 0 },
+                    { name: "printer_line", align: "left", style: "normal", col: 0 },
+                    { name: "table_line", align: "left", style: "normal", col: 0 },
+                    { name: "order_line", align: "left", style: "normal", col: 0 },
+                    { name: "time_line", align: "left", style: "normal", col: 0 },
+                    { name: "waiter_line", align: "left", style: "normal", col: 0 },
+                    { name: "separator", align: "left", style: "normal", col: 0 },
+                    { name: "items_block", align: "left", style: "normal", col: 0 },
+                    { name: "separator", align: "left", style: "normal", col: 0 },
+                ],
+            },
+        };
+
+        const HORIZONTAL_SCALE = PAPER_WIDTH / LEGACY_PAPER_WIDTH;
+        Object.values(TEMPLATE_LIBRARY).forEach((config) => {
+            Object.values(config.fields).forEach((field) => {
+                field.width = Math.round(field.width * HORIZONTAL_SCALE);
+            });
+        });
+
+        const LABEL_EDITABLE_FIELDS = {
+            receipt: {
+                order_name_line: { defaultLabel: "Ticket", sampleValue: "POS/00045", format: (label, value) => `${label} ${value}`.trim() },
+                cashier_line: { defaultLabel: "Served by", sampleValue: "Administrator", format: (label, value) => `${label} : ${value}` },
+                subtotal_line: { defaultLabel: "Subtotal", sampleValue: "14.80 so'm", format: (label, value) => `${label} ${value}` },
+                tax_line: { defaultLabel: "Tax", sampleValue: "2.22 so'm", format: (label, value) => `${label} ${value}` },
+                total_line: { defaultLabel: "Total", sampleValue: "17.02 so'm", format: (label, value) => `${label} ${value}` },
+            },
+            kitchen: {
+                table_big: { defaultLabel: "TABLE", sampleValue: "7", format: (label, value) => `${label} ${value}`.trim() },
+                printer_line: { defaultLabel: "Printer", sampleValue: "Bar", format: (label, value) => `${label} : ${value}` },
+                table_line: { defaultLabel: "Table", sampleValue: "7", format: (label, value) => `${label} : ${value}` },
+                order_line: { defaultLabel: "Order", sampleValue: "3011", format: (label, value) => `${label} : ${value}` },
+                time_line: { defaultLabel: "Time", sampleValue: "20:14:19", format: (label, value) => `${label} : ${value}` },
+                waiter_line: { defaultLabel: "Waiter", sampleValue: "Administrator", format: (label, value) => `${label} : ${value}` },
+            },
+        };
+
+        const FIELD_FONT_CAPS = {
+            items_block: { normal: 20, bold: 22, double: 26, huge: 30 },
+            lines_block: { normal: 20, bold: 22, double: 26, huge: 30 },
+            payments_block: { normal: 20, bold: 22, double: 26, huge: 30 },
+            static_text: { normal: 22, bold: 24, double: 30, huge: 36 },
+            printer_line: { normal: 20, bold: 22, double: 26, huge: 30 },
+            table_line: { normal: 20, bold: 22, double: 26, huge: 30 },
+            order_line: { normal: 20, bold: 22, double: 26, huge: 30 },
+            time_line: { normal: 20, bold: 22, double: 26, huge: 30 },
+            waiter_line: { normal: 20, bold: 22, double: 26, huge: 30 },
+            table_big: { normal: 28, bold: 30, double: 38, huge: 56 },
+            ticket_title: { normal: 24, bold: 26, double: 32, huge: 42 },
+        };
+
+        const state = {
+            blocks: [],
+            layouts: { receipt: [], kitchen: [] },
+            selectedId: null,
+            drag: null,
+            nextId: 1,
+            ticketType: TEMPLATE_LIBRARY[BOOTSTRAP.ticket_type] ? BOOTSTRAP.ticket_type : "receipt",
+        };
+
+        const paletteList = document.getElementById("paletteList");
+        const receiptPaper = document.getElementById("receiptPaper");
+        const exportOutput = document.getElementById("exportOutput");
+        const receiptCount = document.getElementById("receiptCount");
+        const countHint = document.getElementById("countHint");
+        const selectedFieldName = document.getElementById("selectedFieldName");
+        const colInput = document.getElementById("colInput");
+        const statusLine = document.getElementById("statusLine");
+        const dragGhost = document.getElementById("dragGhost");
+        const dropHint = document.getElementById("dropHint");
+        const copyButton = document.getElementById("copyButton");
+        const saveButton = document.getElementById("saveButton");
+        const resetButton = document.getElementById("resetButton");
+        const deleteButton = document.getElementById("deleteButton");
+        const ticketTypeSelect = document.getElementById("ticketTypeSelect");
+        const stageTitle = document.getElementById("stageTitle");
+        const stageSubtitle = document.getElementById("stageSubtitle");
+        const fieldLabelInput = document.getElementById("fieldLabelInput");
+        const fieldLabelHint = document.getElementById("fieldLabelHint");
+        const customTextInput = document.getElementById("customTextInput");
+        const customTextHint = document.getElementById("customTextHint");
+
+        function clamp(value, min, max) {
+            return Math.max(min, Math.min(max, value));
+        }
+
+        function snap(value, step = 4) {
+            return Math.round(value / step) * step;
+        }
+
+        function nextId(existingId = null) {
+            if (existingId) {
+                const match = String(existingId).match(/(\d+)$/);
+                if (match) {
+                    state.nextId = Math.max(state.nextId, Number(match[1]) + 1);
+                }
+                return existingId;
+            }
+            const id = `block-${state.nextId}`;
+            state.nextId += 1;
+            return id;
+        }
+
+        function activeTemplateConfig(templateType = state.ticketType) {
+            return TEMPLATE_LIBRARY[templateType] || TEMPLATE_LIBRARY.receipt;
+        }
+
+        function activeLibrary(templateType = state.ticketType) {
+            return activeTemplateConfig(templateType).fields;
+        }
+
+        function templateBootstrap(templateType = state.ticketType) {
+            return BOOTSTRAP.templates?.[templateType] || {};
+        }
+
+        function inferSourceCanvasWidth(elements, templateType) {
+            const configuredWidth = Number(templateBootstrap(templateType).canvas_width || 0);
+            if (configuredWidth > 0) {
+                return configuredWidth;
+            }
+            const maxRight = (Array.isArray(elements) ? elements : []).reduce((max, entry) => {
+                const x = Number(entry?.x);
+                const width = Number(entry?.width);
+                if (!Number.isFinite(x) || !Number.isFinite(width)) {
+                    return max;
+                }
+                return Math.max(max, x + width);
+            }, 0);
+            if (maxRight > 0 && maxRight <= LEGACY_PAPER_WIDTH + PAPER_PADDING) {
+                return LEGACY_PAPER_WIDTH;
+            }
+            return PAPER_WIDTH;
+        }
+
+        function fieldLabel(name, templateType = state.ticketType) {
+            return activeLibrary(templateType)[name]?.label || name;
+        }
+
+        function fieldSample(name, templateType = state.ticketType) {
+            return activeLibrary(templateType)[name]?.sample || name;
+        }
+
+        function editableLabelConfig(block) {
+            if (!block) return null;
+            const templateType = block.ticket_type || state.ticketType;
+            return LABEL_EDITABLE_FIELDS[templateType]?.[block.name] || null;
+        }
+
+        function previewTextWithLabel(block, config) {
+            const label = String(block.label || "").trim() || config.defaultLabel;
+            return config.format(label, config.sampleValue);
+        }
+
+        function blockPreviewText(block) {
+            if (!block) return "";
+            if (block.name === "static_text") {
+                return block.text || "Custom text";
+            }
+            if (block.name === "blank") {
+                return "[blank space]";
+            }
+            const labelConfig = editableLabelConfig(block);
+            if (labelConfig) {
+                return previewTextWithLabel(block, labelConfig);
+            }
+            return fieldSample(block.name, block.ticket_type);
+        }
+
+        function baseFontSize(style) {
+            if (style === "huge") return 34;
+            if (style === "double") return 24;
+            if (style === "bold") return 15;
+            return 13;
+        }
+
+        function lineCountForField(name, templateType = state.ticketType) {
+            return fieldSample(name, templateType).split("\n").length;
+        }
+
+        function blockFontSize(block) {
+            const templateType = block.ticket_type || state.ticketType;
+            const meta = activeLibrary(templateType)[block.name] || { width: 240, height: 48 };
+            const widthRatio = block.width / meta.width;
+            const previewLineCount = blockPreviewText(block).split("\n").length;
+            const heightRatio = block.height / Math.max(34, previewLineCount * 24);
+            const scale = clamp(Math.min(widthRatio, heightRatio), 0.78, 2.25);
+            const computed = Math.round(baseFontSize(block.style) * scale);
+            const caps = FIELD_FONT_CAPS[block.name];
+            const cap = caps?.[block.style] || null;
+            return cap ? Math.min(computed, cap) : computed;
+        }
+
+        function defaultX(width, align, col = 0) {
+            if (align === "center") return Math.round((PAPER_WIDTH - width) / 2);
+            if (align === "right") return PAPER_WIDTH - width - PAPER_PADDING;
+            return PAPER_PADDING + (Math.max(0, col) * GRID_SIZE);
+        }
+
+        function normalizedColFromX(x) {
+            return Math.max(0, Math.round((x - PAPER_PADDING) / GRID_SIZE));
+        }
+
+        function createBlock(name, templateType = state.ticketType, options = {}) {
+            const meta = activeLibrary(templateType)[name] || { width: 248, height: 48, align: "left", style: "normal" };
+            const width = clamp(Number(options.width || meta.width), MIN_BLOCK_WIDTH, PAPER_WIDTH - PAPER_PADDING * 2);
+            const height = clamp(Number(options.height || meta.height), MIN_BLOCK_HEIGHT, MAX_BLOCK_HEIGHT);
+            const align = options.align || meta.align || "left";
+            const style = options.style || meta.style || "normal";
+            const col = Math.max(0, Number(options.col || 0));
+            const x = clamp(options.x ?? defaultX(width, align, col), PAPER_PADDING, PAPER_WIDTH - width - PAPER_PADDING);
+            return {
+                id: nextId(options.id),
+                ticket_type: templateType,
+                name,
+                align,
+                style,
+                col: options.col !== undefined ? col : normalizedColFromX(x),
+                x,
+                y: Math.max(PAPER_PADDING, Number(options.y ?? PAPER_PADDING)),
+                width,
+                height,
+                order: Number(options.order || 0),
+                label: options.label !== undefined ? String(options.label) : "",
+                text: options.text !== undefined ? String(options.text) : (name === "static_text" ? meta.sample : ""),
+            };
+        }
+
+        function buildDefaultLayout(templateType = state.ticketType) {
+            let y = 52;
+            return activeTemplateConfig(templateType).defaults.map((entry) => {
+                const block = createBlock(entry.name, templateType, {
+                    align: entry.align,
+                    style: entry.style,
+                    col: entry.col,
+                    y,
+                });
+                y += block.height + 6;
+                return block;
+            });
+        }
+
+        function buildLayoutFromElements(elements, templateType) {
+            if (!Array.isArray(elements) || !elements.length) {
+                return buildDefaultLayout(templateType);
+            }
+
+            const sourceCanvasWidth = inferSourceCanvasWidth(elements, templateType);
+            const scaleX = PAPER_WIDTH / sourceCanvasWidth;
+            let autoY = 52;
+            return elements
+                .map((entry, index) => ({ ...entry, _index: index }))
+                .sort((a, b) => {
+                    const aOrder = Number.isFinite(Number(a.order)) ? Number(a.order) : a._index + 1;
+                    const bOrder = Number.isFinite(Number(b.order)) ? Number(b.order) : b._index + 1;
+                    return aOrder - bOrder;
+                })
+                .map((entry) => {
+                    const fieldName = entry.field || entry.name;
+                    const hasPosition = Number.isFinite(Number(entry.x)) && Number.isFinite(Number(entry.y));
+                    const block = createBlock(fieldName, templateType, {
+                        id: entry.id,
+                        align: entry.align,
+                        style: entry.style,
+                        col: entry.col,
+                        order: entry.order,
+                        width: Number.isFinite(Number(entry.width)) ? Math.round(Number(entry.width) * scaleX) : entry.width,
+                        height: entry.height,
+                        x: hasPosition ? Math.round(Number(entry.x) * scaleX) : undefined,
+                        y: hasPosition ? Number(entry.y) : autoY,
+                        label: entry.label,
+                        text: entry.text,
+                    });
+                    autoY = Math.max(autoY, block.y + block.height + 6);
+                    return block;
+                });
+        }
+
+        function blockToElement(block, index) {
+            const element = {
+                field: block.name,
+                align: block.align,
+                style: block.style,
+                col: block.col,
+                order: index + 1,
+                x: block.x,
+                y: block.y,
+                width: block.width,
+                height: block.height,
+            };
+            if (block.name === "static_text") {
+                element.text = block.text || "";
+            }
+            if (block.label) {
+                element.label = block.label;
+            }
+            return element;
+        }
+
+        function loadBootstrapLayouts() {
+            const templates = BOOTSTRAP.templates || {};
+            Object.keys(TEMPLATE_LIBRARY).forEach((templateType) => {
+                state.layouts[templateType] = buildLayoutFromElements(
+                    templates[templateType]?.elements,
+                    templateType
+                );
+            });
+            state.blocks = state.layouts[state.ticketType].map((block) => ({ ...block }));
+            state.selectedId = state.blocks[0]?.id || null;
+        }
+
+        function persistCurrentLayout() {
+            state.layouts[state.ticketType] = state.blocks.map((block) => ({ ...block }));
+        }
+
+        function getSelectedBlock() {
+            return state.blocks.find((block) => block.id === state.selectedId) || null;
+        }
+
+        function sortBlocksByVisualOrder(blocks = state.blocks) {
+            return [...blocks].sort((a, b) => {
+                if (Math.abs(a.y - b.y) > 12) return a.y - b.y;
+                return a.x - b.x;
+            });
+        }
+
+        function updateOrders(blocks = state.blocks) {
+            const ordered = sortBlocksByVisualOrder(blocks);
+            ordered.forEach((block, index) => {
+                block.order = index + 1;
+            });
+            return ordered;
+        }
+
+        function updatePaperHeight() {
+            const edge = state.blocks.reduce((max, block) => Math.max(max, block.y + block.height), 160);
+            receiptPaper.style.height = `${Math.max(PAPER_MIN_HEIGHT, edge + 24)}px`;
+        }
+
+        function setStatus(message) {
+            statusLine.textContent = message;
+        }
+
+        function updateTypeUi() {
+            const config = activeTemplateConfig();
+            ticketTypeSelect.value = state.ticketType;
+            stageTitle.textContent = `${config.label} Canvas`;
+            stageSubtitle.textContent = config.subtitle;
+            receiptCount.textContent = `${config.label} - ${state.blocks.length} block${state.blocks.length === 1 ? "" : "s"}`;
+            countHint.textContent = `${config.label} - ${state.blocks.length} field${state.blocks.length === 1 ? "" : "s"}`;
+            dropHint.textContent = `Drop ${config.label.toLowerCase()} fields here`;
+            saveButton.textContent =
+                window.pywebview?.api && typeof window.pywebview.api.save === "function"
+                    ? "Save to Manager"
+                    : "Save JSON";
+        }
+
+        function renderPalette() {
+            paletteList.innerHTML = "";
+            Object.keys(activeLibrary()).forEach((fieldName) => {
+                const card = document.createElement("div");
+                card.className = "palette-card";
+                card.dataset.field = fieldName;
+                const sample = fieldName === "blank" ? "[blank space]" : fieldSample(fieldName);
+                card.innerHTML = `<strong>${fieldLabel(fieldName)}</strong><span>${sample}</span>`;
+                paletteList.appendChild(card);
+            });
+        }
+
+        function renderBlocks() {
+            updateOrders();
+            updatePaperHeight();
+            receiptPaper.querySelectorAll(".receipt-block, .empty-state").forEach((node) => node.remove());
+
+            if (!state.blocks.length) {
+                const empty = document.createElement("div");
+                empty.className = "empty-state";
+                empty.textContent = `Drag ${activeTemplateConfig().label.toLowerCase()} fields here to start building the layout.`;
+                receiptPaper.appendChild(empty);
+            }
+
+            const ordered = sortBlocksByVisualOrder();
+            const selected = getSelectedBlock();
+            const queue = ordered.filter((block) => block.id !== state.selectedId);
+            if (selected) queue.push(selected);
+
+            queue.forEach((block, index) => {
+                const node = document.createElement("div");
+                node.className = `receipt-block${block.id === state.selectedId ? " is-selected" : ""}`;
+                node.dataset.id = block.id;
+                node.style.left = `${block.x}px`;
+                node.style.top = `${block.y}px`;
+                node.style.width = `${block.width}px`;
+                node.style.height = `${block.height}px`;
+                node.style.zIndex = `${10 + index}`;
+
+                const meta = document.createElement("div");
+                meta.className = "block-meta";
+                meta.innerHTML = `<span class="block-order">${String(block.order).padStart(2, "0")}</span><span class="block-namechip">${fieldLabel(block.name, block.ticket_type)}</span>`;
+                node.appendChild(meta);
+
+                const preview = document.createElement("div");
+                preview.className = `block-preview align-${block.align} style-${block.style}`;
+                preview.style.fontSize = `${blockFontSize(block)}px`;
+                const previewText = blockPreviewText(block);
+                const previewInner = document.createElement("div");
+                previewInner.className = "block-preview-text";
+                previewInner.textContent = previewText;
+                preview.appendChild(previewInner);
+                preview.classList.toggle("is-placeholder", !String(previewText || "").trim() || block.name === "blank");
+                node.appendChild(preview);
+
+                ["nw", "n", "ne", "e", "se", "s", "sw", "w"].forEach((handle) => {
+                    const dot = document.createElement("div");
+                    dot.className = "resize-handle";
+                    dot.dataset.handle = handle;
+                    node.appendChild(dot);
+                });
+
+                receiptPaper.appendChild(node);
+            });
+
+            dropHint.style.display = state.blocks.length ? "none" : "inline-flex";
+        }
+
+        function renderInspector() {
+            const selected = getSelectedBlock();
+            selectedFieldName.textContent = selected ? fieldLabel(selected.name, selected.ticket_type) : "Nothing selected";
+            colInput.disabled = !selected;
+            deleteButton.disabled = !selected;
+            const labelConfig = editableLabelConfig(selected);
+
+            document.querySelectorAll("[data-align]").forEach((button) => {
+                button.classList.toggle("is-active", !!selected && button.dataset.align === selected.align);
+                button.disabled = !selected;
+            });
+
+            document.querySelectorAll("[data-style]").forEach((button) => {
+                button.classList.toggle("is-active", !!selected && button.dataset.style === selected.style);
+                button.disabled = !selected;
+            });
+
+            colInput.value = selected ? selected.col : 0;
+            fieldLabelInput.disabled = !selected || !labelConfig;
+            fieldLabelInput.value = selected && labelConfig ? (selected.label || "") : "";
+            fieldLabelInput.placeholder = labelConfig ? `Default: ${labelConfig.defaultLabel}` : "This field does not have an editable label.";
+            fieldLabelHint.textContent = labelConfig
+                ? "Only the printed label changes. The POS value stays dynamic."
+                : "Select a label-based field to rename only its printed label.";
+            customTextInput.disabled = !selected || selected.name !== "static_text";
+            customTextInput.value = selected && selected.name === "static_text" ? (selected.text || "") : "";
+            customTextHint.textContent = selected && selected.name === "static_text"
+                ? "Type the exact text you want this block to print."
+                : "Select a Custom Text block to edit its text.";
+        }
+
+        function refreshAll() {
+            updateTypeUi();
+            renderBlocks();
+            renderInspector();
+        }
+
+        function buildTemplatesPayload() {
+            persistCurrentLayout();
+            const payload = {};
+            Object.keys(TEMPLATE_LIBRARY).forEach((templateType) => {
+                const blocks = templateType === state.ticketType ? state.blocks : state.layouts[templateType];
+                const ordered = updateOrders(blocks);
+                payload[templateType] = {
+                    canvas_width: PAPER_WIDTH,
+                    elements: ordered.map((block, index) => blockToElement(block, index)),
+                };
+            });
+            return payload;
+        }
+
+        function exportTemplate() {
+            const ordered = updateOrders();
+            const payload = ordered.map((block, index) => blockToElement(block, index));
+            exportOutput.value = JSON.stringify(payload, null, 2);
+            return payload;
+        }
+
+        function switchTicketType(nextType) {
+            if (!TEMPLATE_LIBRARY[nextType] || nextType === state.ticketType) {
+                return;
+            }
+            persistCurrentLayout();
+            state.ticketType = nextType;
+            state.blocks = state.layouts[nextType].map((block) => ({ ...block }));
+            state.selectedId = state.blocks[0]?.id || null;
+            renderPalette();
+            exportTemplate();
+            refreshAll();
+            setStatus(`${activeTemplateConfig().label} template loaded`);
+        }
+
+        function resetToDefault() {
+            state.blocks = buildDefaultLayout(state.ticketType);
+            persistCurrentLayout();
+            state.selectedId = state.blocks[0]?.id || null;
+            exportTemplate();
+            refreshAll();
+            setStatus(`${activeTemplateConfig().label} default layout restored`);
+        }
+
+        function deleteSelectedBlock() {
+            const selected = getSelectedBlock();
+            if (!selected) return;
+            state.blocks = state.blocks.filter((block) => block.id !== selected.id);
+            persistCurrentLayout();
+            state.selectedId = state.blocks[0]?.id || null;
+            exportTemplate();
+            refreshAll();
+            setStatus(`Removed ${fieldLabel(selected.name, selected.ticket_type)}`);
+        }
+
+        function placeBlockOnPaper(fieldName, clientX, clientY) {
+            const rect = receiptPaper.getBoundingClientRect();
+            const meta = activeLibrary()[fieldName];
+            const width = meta.width;
+            const height = meta.height;
+            const x = clamp(snap(clientX - rect.left - (width / 2)), PAPER_PADDING, PAPER_WIDTH - width - PAPER_PADDING);
+            const y = Math.max(PAPER_PADDING, snap(clientY - rect.top - 18));
+            const block = createBlock(fieldName, state.ticketType, { x, y, width, height, align: meta.align, style: meta.style });
+            block.col = normalizedColFromX(block.x);
+            state.blocks.push(block);
+            persistCurrentLayout();
+            state.selectedId = block.id;
+            exportTemplate();
+            refreshAll();
+            setStatus(`Added ${fieldLabel(fieldName)}`);
+        }
+
+        function beginPaletteDrag(fieldName, clientX, clientY) {
+            state.drag = { mode: "palette", fieldName };
+            dragGhost.textContent = fieldLabel(fieldName);
+            dragGhost.style.transform = `translate(${clientX + 14}px, ${clientY + 14}px)`;
+            setStatus(`Dragging ${fieldLabel(fieldName)}`);
+        }
+
+        function beginMove(block, clientX, clientY) {
+            state.drag = {
+                mode: "move",
+                id: block.id,
+                startX: clientX,
+                startY: clientY,
+                originX: block.x,
+                originY: block.y,
+            };
+            setStatus(`Moving ${fieldLabel(block.name, block.ticket_type)}`);
+        }
+
+        function beginResize(block, handle, clientX, clientY) {
+            state.drag = {
+                mode: "resize",
+                id: block.id,
+                handle,
+                startX: clientX,
+                startY: clientY,
+                snapshot: { x: block.x, y: block.y, width: block.width, height: block.height },
+            };
+            setStatus(`Resizing ${fieldLabel(block.name, block.ticket_type)}`);
+        }
+
+        function updateMove(clientX, clientY) {
+            const block = getSelectedBlock();
+            if (!block || !state.drag) return;
+            const dx = clientX - state.drag.startX;
+            const dy = clientY - state.drag.startY;
+            block.x = clamp(snap(state.drag.originX + dx), PAPER_PADDING, PAPER_WIDTH - block.width - PAPER_PADDING);
+            block.y = Math.max(PAPER_PADDING, snap(state.drag.originY + dy));
+            block.col = normalizedColFromX(block.x);
+            persistCurrentLayout();
+            refreshAll();
+        }
+
+        function updateResize(clientX, clientY) {
+            const block = getSelectedBlock();
+            if (!block || !state.drag) return;
+            const dx = clientX - state.drag.startX;
+            const dy = clientY - state.drag.startY;
+            const handle = state.drag.handle;
+            const snapshot = state.drag.snapshot;
+            let nextX = snapshot.x;
+            let nextY = snapshot.y;
+            let nextWidth = snapshot.width;
+            let nextHeight = snapshot.height;
+            const right = snapshot.x + snapshot.width;
+            const bottom = snapshot.y + snapshot.height;
+
+            if (handle.includes("e")) {
+                nextWidth = clamp(snap(snapshot.width + dx), MIN_BLOCK_WIDTH, PAPER_WIDTH - snapshot.x - PAPER_PADDING);
+            }
+            if (handle.includes("s")) {
+                nextHeight = clamp(snap(snapshot.height + dy), MIN_BLOCK_HEIGHT, MAX_BLOCK_HEIGHT);
+            }
+            if (handle.includes("w")) {
+                nextX = clamp(snap(snapshot.x + dx), PAPER_PADDING, right - MIN_BLOCK_WIDTH);
+                nextWidth = clamp(right - nextX, MIN_BLOCK_WIDTH, PAPER_WIDTH - nextX - PAPER_PADDING);
+            }
+            if (handle.includes("n")) {
+                nextY = Math.max(PAPER_PADDING, snap(snapshot.y + dy));
+                nextY = Math.min(nextY, bottom - MIN_BLOCK_HEIGHT);
+                nextHeight = clamp(bottom - nextY, MIN_BLOCK_HEIGHT, MAX_BLOCK_HEIGHT);
+            }
+
+            block.x = nextX;
+            block.y = nextY;
+            block.width = nextWidth;
+            block.height = nextHeight;
+            block.col = normalizedColFromX(block.x);
+            persistCurrentLayout();
+            refreshAll();
+        }
+
+        async function copyExportToClipboard() {
+            const text = exportOutput.value || JSON.stringify(exportTemplate(), null, 2);
+            try {
+                await navigator.clipboard.writeText(text);
+                setStatus("JSON copied to clipboard");
+            } catch (_error) {
+                exportOutput.focus();
+                exportOutput.select();
+                setStatus("Clipboard blocked. JSON is ready in the export box.");
+            }
+        }
+
+        async function saveToHost() {
+            exportTemplate();
+            const payload = {
+                ticket_type: state.ticketType,
+                templates: buildTemplatesPayload(),
+            };
+
+            if (window.pywebview?.api && typeof window.pywebview.api.save === "function") {
+                saveButton.disabled = true;
+                try {
+                    await window.pywebview.api.save(payload);
+                    setStatus(`${activeTemplateConfig().label} template saved to manager`);
+                } catch (error) {
+                    console.error(error);
+                    setStatus("Save failed. JSON is still available below.");
+                } finally {
+                    saveButton.disabled = false;
+                }
+                return;
+            }
+
+            await copyExportToClipboard();
+            setStatus(`${activeTemplateConfig().label} JSON exported`);
+        }
+
+        function clearDragState() {
+            state.drag = null;
+            dragGhost.style.transform = "translate(-9999px, -9999px)";
+        }
+
+        paletteList.addEventListener("pointerdown", (event) => {
+            const card = event.target.closest(".palette-card");
+            if (!card) return;
+            event.preventDefault();
+            beginPaletteDrag(card.dataset.field, event.clientX, event.clientY);
+        });
+
+        receiptPaper.addEventListener("pointerdown", (event) => {
+            const handle = event.target.closest(".resize-handle");
+            const blockNode = event.target.closest(".receipt-block");
+
+            if (!blockNode) {
+                state.selectedId = null;
+                refreshAll();
+                return;
+            }
+
+            const block = state.blocks.find((item) => item.id === blockNode.dataset.id);
+            if (!block) return;
+            state.selectedId = block.id;
+            refreshAll();
+            event.preventDefault();
+
+            if (handle) {
+                beginResize(block, handle.dataset.handle, event.clientX, event.clientY);
+                return;
+            }
+
+            beginMove(block, event.clientX, event.clientY);
+        });
+
+        window.addEventListener("pointermove", (event) => {
+            if (!state.drag) return;
+            if (state.drag.mode === "palette") {
+                dragGhost.style.transform = `translate(${event.clientX + 14}px, ${event.clientY + 14}px)`;
+                return;
+            }
+            if (state.drag.mode === "move") {
+                updateMove(event.clientX, event.clientY);
+                return;
+            }
+            if (state.drag.mode === "resize") {
+                updateResize(event.clientX, event.clientY);
+            }
+        });
+
+        window.addEventListener("pointerup", (event) => {
+            if (!state.drag) return;
+
+            if (state.drag.mode === "palette") {
+                const rect = receiptPaper.getBoundingClientRect();
+                const inside =
+                    event.clientX >= rect.left &&
+                    event.clientX <= rect.right &&
+                    event.clientY >= rect.top &&
+                    event.clientY <= rect.bottom;
+                if (inside) {
+                    placeBlockOnPaper(state.drag.fieldName, event.clientX, event.clientY);
+                } else {
+                    setStatus(`Drag a ${activeTemplateConfig().label.toLowerCase()} field onto the paper to place it.`);
+                }
+            } else {
+                exportTemplate();
+                setStatus("Layout updated");
+            }
+
+            clearDragState();
+        });
+
+        document.getElementById("alignControls").addEventListener("click", (event) => {
+            const button = event.target.closest("[data-align]");
+            const selected = getSelectedBlock();
+            if (!button || !selected) return;
+            selected.align = button.dataset.align;
+            selected.x = clamp(defaultX(selected.width, selected.align, selected.col), PAPER_PADDING, PAPER_WIDTH - selected.width - PAPER_PADDING);
+            persistCurrentLayout();
+            exportTemplate();
+            refreshAll();
+            setStatus(`Alignment set to ${selected.align}`);
+        });
+
+        document.getElementById("styleControls").addEventListener("click", (event) => {
+            const button = event.target.closest("[data-style]");
+            const selected = getSelectedBlock();
+            if (!button || !selected) return;
+            selected.style = button.dataset.style;
+            persistCurrentLayout();
+            exportTemplate();
+            refreshAll();
+            setStatus(`Style set to ${selected.style}`);
+        });
+
+        colInput.addEventListener("input", () => {
+            const selected = getSelectedBlock();
+            if (!selected) return;
+            selected.col = Math.max(0, Number(colInput.value || 0));
+            selected.x = clamp(defaultX(selected.width, selected.align, selected.col), PAPER_PADDING, PAPER_WIDTH - selected.width - PAPER_PADDING);
+            persistCurrentLayout();
+            exportTemplate();
+            refreshAll();
+            setStatus(`Column offset set to ${selected.col}`);
+        });
+
+        fieldLabelInput.addEventListener("input", () => {
+            const selected = getSelectedBlock();
+            const labelConfig = editableLabelConfig(selected);
+            if (!selected || !labelConfig) return;
+            selected.label = fieldLabelInput.value;
+            persistCurrentLayout();
+            exportTemplate();
+            refreshAll();
+            setStatus("Field label updated");
+        });
+
+        customTextInput.addEventListener("input", () => {
+            const selected = getSelectedBlock();
+            if (!selected || selected.name !== "static_text") return;
+            selected.text = customTextInput.value;
+            persistCurrentLayout();
+            exportTemplate();
+            refreshAll();
+            setStatus("Custom text updated");
+        });
+
+        ticketTypeSelect.addEventListener("change", () => {
+            switchTicketType(ticketTypeSelect.value);
+        });
+
+        deleteButton.addEventListener("click", deleteSelectedBlock);
+        copyButton.addEventListener("click", copyExportToClipboard);
+        saveButton.addEventListener("click", saveToHost);
+        resetButton.addEventListener("click", resetToDefault);
+
+        window.addEventListener("keydown", (event) => {
+            const selected = getSelectedBlock();
+            if (!selected) return;
+
+            const tag = document.activeElement?.tagName || "";
+            if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") {
+                return;
+            }
+
+            if (event.key === "Delete" || event.key === "Backspace") {
+                event.preventDefault();
+                deleteSelectedBlock();
+                return;
+            }
+
+            const moveStep = event.shiftKey ? 8 : 4;
+            if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) {
+                event.preventDefault();
+                if (event.key === "ArrowLeft") selected.x = clamp(selected.x - moveStep, PAPER_PADDING, PAPER_WIDTH - selected.width - PAPER_PADDING);
+                if (event.key === "ArrowRight") selected.x = clamp(selected.x + moveStep, PAPER_PADDING, PAPER_WIDTH - selected.width - PAPER_PADDING);
+                if (event.key === "ArrowUp") selected.y = Math.max(PAPER_PADDING, selected.y - moveStep);
+                if (event.key === "ArrowDown") selected.y = selected.y + moveStep;
+                selected.col = normalizedColFromX(selected.x);
+                persistCurrentLayout();
+                exportTemplate();
+                refreshAll();
+            }
+        });
+
+        renderPalette();
+        loadBootstrapLayouts();
+        exportTemplate();
+        refreshAll();
+        setStatus(`${activeTemplateConfig().label} template ready`);
+    </script>
+</body>
+</html>

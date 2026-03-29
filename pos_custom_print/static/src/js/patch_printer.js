@@ -69,6 +69,107 @@ function resolveOrderLabel(data, order) {
     );
 }
 
+function parseQty(value, fallback = 1) {
+    if (value === null || value === undefined) {
+        return fallback;
+    }
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return value;
+    }
+    const text = String(value).trim();
+    if (!text) {
+        return fallback;
+    }
+    const parsed = Number(text.replace(',', '.'));
+    return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function asChangeList(value) {
+    if (Array.isArray(value)) {
+        return value;
+    }
+    if (value instanceof Set || value instanceof Map) {
+        return Array.from(value.values());
+    }
+    if (value && typeof value === 'object') {
+        return Object.values(value);
+    }
+    return [];
+}
+
+function resolveReceiptChangeSection(receiptData, changes = null) {
+    const receiptLines = receiptData?.changes?.data;
+    if (changes && receiptLines === changes.new) {
+        return 'new';
+    }
+    if (changes && receiptLines === changes.cancelled) {
+        return 'cancelled';
+    }
+    if (changes && receiptLines === changes.noteUpdate) {
+        return 'noteUpdate';
+    }
+
+    const explicitSection = firstNonEmpty(
+        receiptData?.changes?.section,
+        receiptData?.changes?.change_section
+    )
+        .replace(/\s+/g, '')
+        .toLowerCase();
+
+    if (explicitSection === 'new' || explicitSection === 'cancelled' || explicitSection === 'canceled') {
+        return explicitSection === 'canceled' ? 'cancelled' : explicitSection;
+    }
+    if (explicitSection === 'noteupdate' || explicitSection === 'note_update') {
+        return 'noteUpdate';
+    }
+
+    const title = firstNonEmpty(receiptData?.changes?.title).replace(/\s+/g, '').toLowerCase();
+    if (title === 'cancelled' || title === 'canceled') {
+        return 'cancelled';
+    }
+    if (title === 'new') {
+        return 'new';
+    }
+    if (title === 'noteupdate') {
+        return 'noteUpdate';
+    }
+    return 'new';
+}
+
+function buildSignedChangeLine(line, section) {
+    const src = line && typeof line === 'object' ? line : {};
+    const rawQty =
+        src.qty ?? src.quantity ?? src.qty_done ?? src.count ?? src.amount ?? 1;
+    const magnitude = Math.abs(parseQty(rawQty, 1));
+    const signedQty = section === 'cancelled' ? -magnitude : magnitude;
+    return {
+        ...src,
+        qty: signedQty,
+        quantity: signedQty,
+        change_section: section,
+    };
+}
+
+function withSignedChangePayload(receiptData, changes = null) {
+    if (!receiptData?.changes || typeof receiptData.changes !== 'object') {
+        return receiptData;
+    }
+
+    const section = resolveReceiptChangeSection(receiptData, changes);
+    const signedLines = Array.isArray(receiptData.changes.signed_lines)
+        ? receiptData.changes.signed_lines
+        : asChangeList(receiptData.changes.data).map((line) => buildSignedChangeLine(line, section));
+
+    return {
+        ...receiptData,
+        changes: {
+            ...receiptData.changes,
+            section,
+            signed_lines: signedLines,
+        },
+    };
+}
+
 const PRIORITY_QTY_KEYS = [
     'delta',
     'qty_delta',
@@ -100,6 +201,59 @@ const FALLBACK_QTY_KEYS = [
     'amount',
 ];
 
+const NEGATIVE_CHANGE_MARKERS = new Set([
+    'cancelled',
+    'canceled',
+    'removed',
+    'remove',
+    'delete',
+    'deleted',
+    'cxl',
+    'minus',
+    'negative',
+    'decrease',
+    'decreased',
+    'reduce',
+    'reduced',
+    'less',
+    'decrement',
+    'decremented',
+    'subtract',
+    'subtracted',
+]);
+
+const NEGATIVE_CHANGE_TOKENS = [
+    'cancel',
+    'cxl',
+    'remove',
+    'delete',
+    'minus',
+    'negative',
+    'decrease',
+    'reduce',
+    'decrement',
+    'subtract',
+    'less',
+];
+
+const SEMANTIC_QTY_KEY_TOKENS = [
+    'qty',
+    'quantity',
+    'count',
+    'delta',
+    'change',
+    'diff',
+    'difference',
+    'decrease',
+    'decrement',
+    'reduce',
+    'remove',
+    'cancel',
+];
+
+const OLD_QTY_TOKENS = ['old', 'prev', 'previous', 'before', 'from'];
+const NEW_QTY_TOKENS = ['new', 'current', 'after', 'to'];
+
 function normalizeQty(value) {
     if (value === null || value === undefined) {
         return 1;
@@ -129,14 +283,75 @@ function collectQtyCandidates(src) {
     return candidates;
 }
 
+function collectSemanticQtyCandidates(src) {
+    if (!src || typeof src !== 'object') {
+        return [];
+    }
+    const candidates = [];
+    for (const [key, rawValue] of Object.entries(src)) {
+        if (rawValue === null || rawValue === undefined) {
+            continue;
+        }
+        const normalizedKey = String(key).toLowerCase();
+        if (
+            !SEMANTIC_QTY_KEY_TOKENS.some((token) => normalizedKey.includes(token)) ||
+            ['price', 'cost', 'tax', 'total', 'subtotal', 'discount'].some((token) => normalizedKey.includes(token))
+        ) {
+            continue;
+        }
+        const value = normalizeQty(rawValue);
+        if (Number.isFinite(value)) {
+            candidates.push({ key, value });
+        }
+    }
+    return candidates;
+}
+
+function impliedQtyDelta(src) {
+    if (!src || typeof src !== 'object') {
+        return null;
+    }
+    let oldValue = null;
+    let newValue = null;
+    for (const [key, rawValue] of Object.entries(src)) {
+        const normalizedKey = String(key).toLowerCase();
+        if (
+            !SEMANTIC_QTY_KEY_TOKENS.some((token) => normalizedKey.includes(token)) ||
+            ['price', 'cost', 'tax', 'total', 'subtotal', 'discount'].some((token) => normalizedKey.includes(token))
+        ) {
+            continue;
+        }
+        const value = normalizeQty(rawValue);
+        if (!Number.isFinite(value)) {
+            continue;
+        }
+        if (OLD_QTY_TOKENS.some((token) => normalizedKey.includes(token))) {
+            oldValue = value;
+        }
+        if (NEW_QTY_TOKENS.some((token) => normalizedKey.includes(token))) {
+            newValue = value;
+        }
+    }
+    if (oldValue === null || newValue === null) {
+        return null;
+    }
+    const delta = newValue - oldValue;
+    return delta === 0 ? null : delta;
+}
+
 function extractKitchenQty(src) {
-    const candidates = collectQtyCandidates(src);
+    const candidates = [...collectQtyCandidates(src), ...collectSemanticQtyCandidates(src)];
     if (!candidates.length) {
-        return 1;
+        const delta = impliedQtyDelta(src);
+        return delta === null ? 1 : delta;
     }
     const explicitNegative = candidates.find((candidate) => candidate.value < 0);
     if (explicitNegative) {
         return explicitNegative.value;
+    }
+    const delta = impliedQtyDelta(src);
+    if (delta !== null) {
+        return delta;
     }
     const priorityValue = candidates.find((candidate) => PRIORITY_QTY_KEYS.includes(candidate.key));
     if (priorityValue) {
@@ -145,7 +360,28 @@ function extractKitchenQty(src) {
     return candidates[0].value;
 }
 
-function normalizeLine(line) {
+function lineMarker(src) {
+    if (!src || typeof src !== 'object') {
+        return '';
+    }
+    return firstNonEmpty(
+        src.section,
+        src.state,
+        src.status,
+        src.change_type,
+        src.changeType,
+        src.type,
+        src.action,
+        src.operation,
+        src.kind,
+        src.difference_type,
+        src.differenceType,
+        src.delta_type,
+        src.deltaType
+    ).toLowerCase();
+}
+
+function normalizeLine(line, sectionName = '') {
     const src = line && typeof line === 'object' ? line : {};
     return {
         ...src,
@@ -153,29 +389,53 @@ function normalizeLine(line) {
     };
 }
 
-function normalizeLineList(value) {
+function normalizeLineList(value, sectionName = '') {
     if (Array.isArray(value)) {
-        return value.map(normalizeLine);
+        return value.map((line) => normalizeLine(line, sectionName));
+    }
+    if (value instanceof Set) {
+        return Array.from(value.values()).map((line) => normalizeLine(line, sectionName));
+    }
+    if (value instanceof Map) {
+        return Array.from(value.values()).map((line) => normalizeLine(line, sectionName));
     }
     if (value && typeof value === 'object') {
-        return Object.values(value).map(normalizeLine);
+        return Object.values(value).map((line) => normalizeLine(line, sectionName));
     }
     return [];
 }
 
 function normalizeChanges(changes) {
     const src = changes && typeof changes === 'object' ? changes : {};
-    const cancelled = normalizeLineList(src.cancelled).map((line) => ({
-        ...line,
-        qty: line.qty > 0 ? -line.qty : line.qty,
-    }));
-    return {
-        ...src,
-        new: normalizeLineList(src.new),
-        cancelled,
-        noteUpdate: normalizeLineList(src.noteUpdate),
-        data: normalizeLineList(src.data),
-    };
+    const normalized = { ...src };
+    
+    for (const [sectionName, sectionValue] of Object.entries(src)) {
+        normalized[sectionName] = normalizeLineList(sectionValue, sectionName);
+    }
+    
+    // Unify all cancellation/reduction aliases into 'cancelled'
+    const cancelled = []
+        .concat(normalized.cancelled || [])
+        .concat(normalized.removed || [])
+        .concat(normalized.remove || [])
+        .concat(normalized.decrease || [])
+        .concat(normalized.decreased || [])
+        .concat(normalized.reduce || [])
+        .concat(normalized.reduced || []);
+    
+    delete normalized.removed;
+    delete normalized.remove;
+    delete normalized.decrease;
+    delete normalized.decreased;
+    delete normalized.reduce;
+    delete normalized.reduced;
+
+    normalized.new = normalized.new || [];
+    normalized.cancelled = cancelled;
+    normalized.noteUpdate = normalized.noteUpdate || [];
+    normalized.data = normalized.data || [];
+    
+    return normalized;
 }
 
 async function sendToPrintQueue(data, printerType = 'receipt', printerName = null) {
@@ -237,6 +497,11 @@ async function sendToPrintQueue(data, printerType = 'receipt', printerName = nul
 }
 
 patch(PosStore.prototype, {
+    async generateReceiptsDataToPrint(orderData, changes, orderChange) {
+        const receiptsData = await super.generateReceiptsDataToPrint(orderData, changes, orderChange);
+        return receiptsData.map((receiptData) => withSignedChangePayload(receiptData, changes));
+    },
+
     async printReceipt({ basic = false, order = this.getOrder(), printBillActionTriggered = false } = {}) {
         try {
             if (order) {
@@ -311,12 +576,19 @@ patch(PosStore.prototype, {
         try {
             const currentOrder = this.getOrder ? this.getOrder() : null;
             const printerName = resolvePrinterName(printer, 'Kitchen');
+            const normalizedData = withSignedChangePayload(data);
+            const rawChanges =
+                normalizedData?.changes && typeof normalizedData.changes === 'object'
+                    ? normalizedData.changes
+                    : normalizedData;
             const printData = JSON.stringify({
                 type: 'kitchen',
                 printer_name: printerName,
-                table: resolveTableLabel(data, currentOrder),
-                order: resolveOrderLabel(data, currentOrder),
-                changes: normalizeChanges(data?.changes),
+                table: resolveTableLabel(normalizedData, currentOrder),
+                order: resolveOrderLabel(normalizedData, currentOrder),
+                waiter: currentOrder?.getCashierName ? currentOrder.getCashierName() : '',
+                cashier: currentOrder?.getCashierName ? currentOrder.getCashierName() : '',
+                changes: rawChanges,
                 date: new Date().toISOString(),
             });
             await sendToPrintQueue(printData, 'kitchen', printerName);
