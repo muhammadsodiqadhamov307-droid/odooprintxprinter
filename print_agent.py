@@ -58,6 +58,7 @@ LOG_FILE = 'print_agent.log'  # Set to None to log to stdout only
 # ============================================================================
 import json
 import logging
+import re
 import socket
 import sys
 import time
@@ -970,6 +971,11 @@ def _is_placeholder_label(value):
     return text in {'n/a', 'na', '-', '--', 'none', 'null'}
 
 
+def _looks_like_synthetic_takeout_label(value):
+    text = str(value or '').strip()
+    return bool(re.fullmatch(r'\d+\s*x', text, flags=re.IGNORECASE))
+
+
 def _resolve_table_label(payload):
     raw_table = _first_non_empty(
         payload.get('table'),
@@ -979,7 +985,7 @@ def _resolve_table_label(payload):
         payload.get('table_id', {}).get('name') if isinstance(payload.get('table_id'), dict) else None,
     )
     takeout_name = _first_non_empty(payload.get('takeout_name'))
-    if _is_placeholder_label(raw_table):
+    if takeout_name and (_is_placeholder_label(raw_table) or _looks_like_synthetic_takeout_label(raw_table)):
         return takeout_name or raw_table
     return raw_table or takeout_name
 
@@ -1841,7 +1847,7 @@ def _build_receipt_rows(payload, currency_symbol):
             name_qty = f'{name_qty} x {qty_text}'
         left_text = name_qty
         if price_text:
-            left_text = f'{left_text}   {price_text}' if left_text else price_text
+            left_text = f'{left_text}  {price_text}' if left_text else price_text
         lines.append({
             'left': left_text,
             'right': '',

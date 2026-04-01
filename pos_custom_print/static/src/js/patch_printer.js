@@ -34,6 +34,11 @@ function isPlaceholderLabel(value) {
     return ['n/a', 'na', '-', '--', 'none', 'null'].includes(text);
 }
 
+function looksLikeSyntheticTakeoutLabel(value) {
+    const text = String(value ?? '').trim();
+    return /^\d+\s*x$/i.test(text);
+}
+
 function resolvePrinterName(printer, fallback = 'Kitchen') {
     return firstNonEmpty(
         printer?.name,
@@ -94,20 +99,25 @@ function resolveTakeoutName(data, order) {
         order?.bookingName,
         order?.open_tab_name,
         order?.openTabName,
+        order?.uiState?.orderName,
+        order?.uiState?.name,
         partner?.name,
         lastTakeoutName
     );
 }
 
 function rememberTakeoutNameFromDialog(dialog) {
-    const dialogText = normalizedNodeText(dialog);
-    if (!/(take ?out|order.?name|enter.+name|name)/i.test(dialogText)) {
-        return;
-    }
     const inputs = Array.from(
         dialog.querySelectorAll('input[type="text"], input:not([type]), textarea')
     ).filter((node) => isVisibleElement(node));
-    const value = firstNonEmpty(...inputs.map((input) => input.value));
+    if (!inputs.length) {
+        return;
+    }
+    const activeInput = inputs.find((input) => input === document.activeElement);
+    const value = firstNonEmpty(
+        activeInput?.value,
+        ...inputs.map((input) => input.value)
+    );
     if (!value) {
         return;
     }
@@ -201,7 +211,7 @@ function resolveTableLabel(data, order) {
         order?.table_number
     );
     const takeoutName = resolveTakeoutName(data, order);
-    if (isPlaceholderLabel(rawTable)) {
+    if (takeoutName && (isPlaceholderLabel(rawTable) || looksLikeSyntheticTakeoutLabel(rawTable))) {
         return firstNonEmpty(takeoutName, rawTable);
     }
     return firstNonEmpty(rawTable, takeoutName);
