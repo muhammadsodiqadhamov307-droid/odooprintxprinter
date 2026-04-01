@@ -14,6 +14,7 @@ import { PosStore } from '@point_of_sale/app/services/pos_store';
 const TAKEOUT_NAME_KEY = '__posCustomPrintTakeoutName';
 let activePosStore = null;
 let takeoutObserverStarted = false;
+let lastTakeoutName = '';
 
 function firstNonEmpty(...values) {
     for (const value of values) {
@@ -57,6 +58,7 @@ function setTakeoutName(order, rawName) {
     if (!order || !name) {
         return;
     }
+    lastTakeoutName = name;
     order[TAKEOUT_NAME_KEY] = name;
     order.takeout_name = name;
 }
@@ -87,7 +89,8 @@ function resolveTakeoutName(data, order) {
         order?.bookingName,
         order?.open_tab_name,
         order?.openTabName,
-        partner?.name
+        partner?.name,
+        lastTakeoutName
     );
 }
 
@@ -103,6 +106,7 @@ function rememberTakeoutNameFromDialog(dialog) {
     if (!value) {
         return;
     }
+    lastTakeoutName = value;
     setTakeoutName(currentOrder(), value);
 }
 
@@ -151,7 +155,11 @@ function scanTakeoutDialogs() {
 }
 
 function ensureTakeoutObserver() {
-    if (takeoutObserverStarted || typeof document === 'undefined' || !document.body) {
+    if (takeoutObserverStarted || typeof document === 'undefined') {
+        return;
+    }
+    if (!document.body) {
+        window.addEventListener('DOMContentLoaded', ensureTakeoutObserver, { once: true });
         return;
     }
     takeoutObserverStarted = true;
@@ -166,6 +174,8 @@ function ensureTakeoutObserver() {
     document.addEventListener('input', () => window.setTimeout(scanTakeoutDialogs, 30), true);
     window.setTimeout(scanTakeoutDialogs, 0);
 }
+
+ensureTakeoutObserver();
 
 function resolveTableLabel(data, order) {
     const table = order?.table_id || order?.table || order?.tableId || order?.getTable?.();
@@ -632,12 +642,6 @@ async function sendToPrintQueue(data, printerType = 'receipt', printerName = nul
 }
 
 patch(PosStore.prototype, {
-    setup() {
-        super.setup(...arguments);
-        activePosStore = this;
-        ensureTakeoutObserver();
-    },
-
     async generateReceiptsDataToPrint(orderData, changes, orderChange) {
         const receiptsData = await super.generateReceiptsDataToPrint(orderData, changes, orderChange);
         return receiptsData.map((receiptData) => withSignedChangePayload(receiptData, changes));
@@ -645,6 +649,7 @@ patch(PosStore.prototype, {
 
     async printReceipt({ basic = false, order = this.getOrder(), printBillActionTriggered = false } = {}) {
         try {
+            activePosStore = this;
             if (order) {
                 const takeoutName = resolveTakeoutName(null, order);
                 if (takeoutName) {
@@ -712,6 +717,7 @@ patch(PosStore.prototype, {
 
     async printOrderChanges(data, printer) {
         try {
+            activePosStore = this;
             const currentOrder = this.getOrder ? this.getOrder() : null;
             const printerName = resolvePrinterName(printer, 'Kitchen');
             const normalizedData = withSignedChangePayload(data);
