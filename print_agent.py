@@ -861,11 +861,22 @@ def _fit_columns(qty, name, price, width=42):
     qty = str(qty or '')
     name = str(name or '')
     price = str(price or '')
-    reserved = len(qty) + len(price) + 2
+    qty_segment = f' {qty}' if qty else ''
+    reserved = len(qty_segment) + len(price) + 1
     name_width = max(8, width - reserved)
     display_name = _truncate(name, name_width)
-    spaces = ' ' * max(1, width - len(qty) - len(display_name) - len(price))
-    return f'{qty} {display_name}{spaces}{price}'
+    spaces = ' ' * max(1, width - len(display_name) - len(qty_segment) - len(price))
+    return f'{display_name}{qty_segment}{spaces}{price}'
+
+
+def _fit_name_qty(name, qty, width=40):
+    name = str(name or '')
+    qty = str(qty or '')
+    reserved = len(qty) + 1
+    name_width = max(8, width - reserved)
+    display_name = _truncate(name, name_width)
+    spaces = ' ' * max(1, width - len(display_name) - len(qty))
+    return f'{display_name}{spaces}{qty}'
 
 
 def _resolve_printer_name(payload, default=None):
@@ -1147,8 +1158,7 @@ def _build_kitchen_lines(payload):
         logger.info('[KITCHEN-DELTA] %s | qty=%s', product_name, _display_qty(qty))
 
         qty_str = _display_qty(qty)
-        name_str = product_name[:30]
-        rendered.append({'text': f"{qty_str:<6}{name_str}", 'style': 'normal'})
+        rendered.append({'text': _fit_name_qty(product_name, qty_str), 'style': 'normal'})
         if note:
             rendered.append({'text': f" >> {note}", 'style': 'normal'})
 
@@ -1642,8 +1652,9 @@ def _build_receipt_lines(payload, currency_symbol):
 
 def _build_receipt_template_context(payload):
     currency_symbol = payload.get('currency_symbol', '')
-    table_label = payload.get('table') or '-'
+    table_label = payload.get('table') or payload.get('takeout_name') or '-'
     guest_label = payload.get('customer_count') or '-'
+    is_takeout_name = bool(payload.get('takeout_name')) and str(payload.get('table') or '').strip() == str(payload.get('takeout_name') or '').strip()
     elements = _template_elements('receipt')
     label_overrides = {
         str(elem.get('field') or '').strip(): str(elem.get('label') or '').strip()
@@ -1667,7 +1678,7 @@ def _build_receipt_template_context(payload):
         'order_name_line': f"{label_overrides.get('order_name_line', 'Ticket')} {payload.get('order_name', '')}".strip() if payload.get('order_name') else '',
         'date_line': f"{payload.get('date', '')[:19].replace('T', ' ')}" if payload.get('date') else '',
         'cashier_line': _label_value_text(label_overrides.get('cashier_line', 'Served by'), payload.get('cashier', '')) if payload.get('cashier') else '',
-        'table_guests_line': f"Table: {table_label}  Guests: {guest_label}" if payload.get('table') or payload.get('customer_count') else '',
+        'table_guests_line': f"Table: {table_label}" if payload.get('table') else '',
         'tracking_number': payload.get('tracking_number') or '',
         'subtotal_line': _left_right(label_overrides.get('subtotal_line', 'Subtotal'), _money(payload.get('subtotal', 0), currency_symbol)),
         'tax_line': _left_right(label_overrides.get('tax_line', 'Tax'), _money(payload.get('tax', 0), currency_symbol)),
@@ -1719,11 +1730,13 @@ def _build_kitchen_template_context(payload):
     )
     table_label = _first_non_empty(
         payload.get('table'),
+        payload.get('takeout_name'),
         payload.get('table_name'),
         payload.get('table_number'),
         payload.get('table_id', {}).get('table_number') if isinstance(payload.get('table_id'), dict) else None,
         payload.get('table_id', {}).get('name') if isinstance(payload.get('table_id'), dict) else None,
     ) or 'N/A'
+    is_takeout_name = bool(payload.get('takeout_name')) and table_label == str(payload.get('takeout_name')).strip()
     order_label = _first_non_empty(
         payload.get('order'),
         payload.get('order_name'),
@@ -1743,7 +1756,7 @@ def _build_kitchen_template_context(payload):
     context = {
         'ticket_title': f"** {printer_label.upper()} ORDER **",
         'table_big': f"{label_overrides.get('table_big', 'TABLE')} {table_label}".strip(),
-        'table_circle': f"({table_label})",
+        'table_circle': '' if is_takeout_name else f"({table_label})",
         'printer_line': _label_value_text(label_overrides.get('printer_line', 'Printer'), printer_label),
         'table_line': _label_value_text(label_overrides.get('table_line', 'Table'), table_label),
         'order_line': _label_value_text(label_overrides.get('order_line', 'Order'), order_label),

@@ -11,6 +11,10 @@
 import { patch } from '@web/core/utils/patch';
 import { PosStore } from '@point_of_sale/app/services/pos_store';
 
+const TAKEOUT_NAME_KEY = '__posCustomPrintTakeoutName';
+let activePosStore = null;
+let takeoutObserverStarted = false;
+
 function firstNonEmpty(...values) {
     for (const value of values) {
         if (value === null || value === undefined) {
@@ -33,6 +37,136 @@ function resolvePrinterName(printer, fallback = 'Kitchen') {
     );
 }
 
+function isVisibleElement(node) {
+    if (!(node instanceof HTMLElement)) {
+        return false;
+    }
+    return !!(node.offsetParent || node.getClientRects().length);
+}
+
+function normalizedNodeText(node) {
+    return String(node?.textContent || '').replace(/\s+/g, ' ').trim();
+}
+
+function currentOrder() {
+    return activePosStore?.getOrder ? activePosStore.getOrder() : null;
+}
+
+function setTakeoutName(order, rawName) {
+    const name = firstNonEmpty(rawName);
+    if (!order || !name) {
+        return;
+    }
+    order[TAKEOUT_NAME_KEY] = name;
+    order.takeout_name = name;
+}
+
+function resolveTakeoutName(data, order) {
+    const partner = order?.get_partner?.() || order?.partner || order?.partner_id;
+    return firstNonEmpty(
+        data?.takeout_name,
+        data?.pickup_name,
+        data?.customer_name,
+        data?.customerName,
+        data?.booking_name,
+        data?.bookingName,
+        data?.open_tab_name,
+        data?.openTabName,
+        data?.service_name,
+        data?.serviceName,
+        data?.order?.takeout_name,
+        data?.order?.pickup_name,
+        data?.order?.customer_name,
+        data?.order?.customerName,
+        order?.[TAKEOUT_NAME_KEY],
+        order?.takeout_name,
+        order?.pickup_name,
+        order?.customer_name,
+        order?.customerName,
+        order?.booking_name,
+        order?.bookingName,
+        order?.open_tab_name,
+        order?.openTabName,
+        partner?.name
+    );
+}
+
+function rememberTakeoutNameFromDialog(dialog) {
+    const dialogText = normalizedNodeText(dialog);
+    if (!/(take ?out|order.?name|enter.+name|name)/i.test(dialogText)) {
+        return;
+    }
+    const inputs = Array.from(
+        dialog.querySelectorAll('input[type="text"], input:not([type]), textarea')
+    ).filter((node) => isVisibleElement(node));
+    const value = firstNonEmpty(...inputs.map((input) => input.value));
+    if (!value) {
+        return;
+    }
+    setTakeoutName(currentOrder(), value);
+}
+
+function autoAdvanceTakeoutPresetDialog(dialog) {
+    if (dialog.dataset.posCustomPrintTakeoutHandled === '1') {
+        return;
+    }
+    const dialogText = normalizedNodeText(dialog);
+    if (!/select a preset/i.test(dialogText) || !/takeout/i.test(dialogText)) {
+        return;
+    }
+    const slotButtons = Array.from(dialog.querySelectorAll('button')).filter((button) => {
+        return isVisibleElement(button) && /^\d{1,2}:\d{2}$/.test(normalizedNodeText(button));
+    });
+    const continueButton = Array.from(dialog.querySelectorAll('button')).find((button) => {
+        return isVisibleElement(button) && /continue/i.test(normalizedNodeText(button));
+    });
+    if (!slotButtons.length || !continueButton) {
+        return;
+    }
+    dialog.dataset.posCustomPrintTakeoutHandled = '1';
+    window.setTimeout(() => {
+        try {
+            const slot =
+                slotButtons.find((button) => !button.disabled && button.getAttribute('aria-disabled') !== 'true') ||
+                slotButtons[0];
+            slot?.click();
+            window.setTimeout(() => continueButton.click(), 120);
+        } catch (error) {
+            console.warn('[PosCustomPrint] Could not auto-advance takeout preset dialog', error);
+        }
+    }, 50);
+}
+
+function scanTakeoutDialogs() {
+    if (typeof document === 'undefined') {
+        return;
+    }
+    const dialogs = Array.from(
+        document.querySelectorAll('[role="dialog"], .modal, .popup, .dialog')
+    ).filter((node) => isVisibleElement(node));
+    for (const dialog of dialogs) {
+        rememberTakeoutNameFromDialog(dialog);
+        autoAdvanceTakeoutPresetDialog(dialog);
+    }
+}
+
+function ensureTakeoutObserver() {
+    if (takeoutObserverStarted || typeof document === 'undefined' || !document.body) {
+        return;
+    }
+    takeoutObserverStarted = true;
+    const observer = new MutationObserver(() => scanTakeoutDialogs());
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['class', 'style', 'disabled', 'aria-disabled'],
+    });
+    document.addEventListener('click', () => window.setTimeout(scanTakeoutDialogs, 30), true);
+    document.addEventListener('input', () => window.setTimeout(scanTakeoutDialogs, 30), true);
+    window.setTimeout(scanTakeoutDialogs, 0);
+}
+
 function resolveTableLabel(data, order) {
     const table = order?.table_id || order?.table || order?.tableId || order?.getTable?.();
     return firstNonEmpty(
@@ -49,7 +183,8 @@ function resolveTableLabel(data, order) {
         table?.table_number,
         table?.name,
         order?.table_name,
-        order?.table_number
+        order?.table_number,
+        resolveTakeoutName(data, order)
     );
 }
 
@@ -497,6 +632,12 @@ async function sendToPrintQueue(data, printerType = 'receipt', printerName = nul
 }
 
 patch(PosStore.prototype, {
+    setup() {
+        super.setup(...arguments);
+        activePosStore = this;
+        ensureTakeoutObserver();
+    },
+
     async generateReceiptsDataToPrint(orderData, changes, orderChange) {
         const receiptsData = await super.generateReceiptsDataToPrint(orderData, changes, orderChange);
         return receiptsData.map((receiptData) => withSignedChangePayload(receiptData, changes));
@@ -505,12 +646,11 @@ patch(PosStore.prototype, {
     async printReceipt({ basic = false, order = this.getOrder(), printBillActionTriggered = false } = {}) {
         try {
             if (order) {
-                const tableLabel = firstNonEmpty(
-                    order.table_id?.table_number,
-                    order.table_id?.name,
-                    order.table?.table_number,
-                    order.table?.name
-                );
+                const takeoutName = resolveTakeoutName(null, order);
+                if (takeoutName) {
+                    setTakeoutName(order, takeoutName);
+                }
+                const tableLabel = resolveTableLabel({}, order);
                 const printData = JSON.stringify({
                     type: 'receipt',
                     company_name: order.company?.name || 'Odoo POS',
@@ -519,6 +659,7 @@ patch(PosStore.prototype, {
                     cashier: order.getCashierName ? order.getCashierName() : '',
                     date: order.date_order?.toISO ? order.date_order.toISO() : new Date().toISOString(),
                     table: tableLabel,
+                    takeout_name: takeoutName,
                     customer_count: order.customer_count || '',
                     printer_name: 'Receipt',
                     currency_symbol: order.currency?.symbol || '',
@@ -540,10 +681,7 @@ patch(PosStore.prototype, {
                     qty: line.getQuantity ? line.getQuantity() : line.quantity || 0,
                     price: line.priceIncl ?? line.getDisplayPrice?.() ?? 0,
                     price_display: line.currencyDisplayPrice || '',
-                    unit_price_display:
-                        line.currencyDisplayPriceUnit && line.product_id?.uom_id?.name
-                            ? `${line.currencyDisplayPriceUnit} / ${line.product_id.uom_id.name}`
-                            : '',
+                    unit_price_display: line.currencyDisplayPriceUnit || '',
                 })),
             });
             await sendToPrintQueue(printData, 'receipt', 'Receipt');
@@ -577,6 +715,10 @@ patch(PosStore.prototype, {
             const currentOrder = this.getOrder ? this.getOrder() : null;
             const printerName = resolvePrinterName(printer, 'Kitchen');
             const normalizedData = withSignedChangePayload(data);
+            const takeoutName = resolveTakeoutName(normalizedData, currentOrder);
+            if (takeoutName) {
+                setTakeoutName(currentOrder, takeoutName);
+            }
             const rawChanges =
                 normalizedData?.changes && typeof normalizedData.changes === 'object'
                     ? normalizedData.changes
@@ -585,6 +727,7 @@ patch(PosStore.prototype, {
                 type: 'kitchen',
                 printer_name: printerName,
                 table: resolveTableLabel(normalizedData, currentOrder),
+                takeout_name: takeoutName,
                 order: resolveOrderLabel(normalizedData, currentOrder),
                 waiter: currentOrder?.getCashierName ? currentOrder.getCashierName() : '',
                 cashier: currentOrder?.getCashierName ? currentOrder.getCashierName() : '',
