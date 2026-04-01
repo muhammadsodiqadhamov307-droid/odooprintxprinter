@@ -1908,16 +1908,25 @@ def _build_receipt_rows(payload, currency_symbol):
         name_qty = line.get('name', '')
         if qty_text:
             name_qty = f'{name_qty} x {qty_text}'
-        lines.append({
-            'left': name_qty,
-            'right': price_text,
-            'right_align': 'column_left',
-            'column_ratio': 0.40,
-            'column': 18,
-            'gap': 2,
-            'text': _wrap_left_with_column(name_qty, price_text, column=18, width=48, gap=2)[0] if price_text else name_qty,
-            'style': 'normal',
-        })
+        column = 20
+        gap = 2
+        right_width = 24
+        wrapped_name_qty = _wrap_words(name_qty, right_width)
+        if not wrapped_name_qty:
+            wrapped_name_qty = ['']
+        for index, name_part in enumerate(wrapped_name_qty):
+            left_text = price_text if index == 0 else ''
+            row_text = _wrap_left_with_column(left_text, name_part, column=column, width=48, gap=gap)[0] if name_part else left_text
+            lines.append({
+                'left': left_text,
+                'right': name_part,
+                'right_align': 'column_left',
+                'column_ratio': 0.42,
+                'column': column,
+                'gap': gap,
+                'text': row_text,
+                'style': 'normal',
+            })
         unit_price_display = line.get('unit_price_display')
         if unit_price_display:
             lines.append({'left': f'  {unit_price_display}', 'right': '', 'text': f'  {unit_price_display}', 'style': 'normal'})
