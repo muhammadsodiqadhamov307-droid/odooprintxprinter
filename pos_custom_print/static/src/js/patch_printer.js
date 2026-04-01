@@ -93,6 +93,10 @@ function resolveTakeoutName(data, order) {
     const scopedLastTakeoutName =
         order && orderCacheKey(order) && orderCacheKey(order) === lastTakeoutOrderKey ? lastTakeoutName : '';
     return firstNonEmpty(
+        data?.headerData?.takeout_name,
+        data?.headerData?.pickup_name,
+        data?.headerData?.customer_name,
+        data?.headerData?.customerName,
         data?.takeout_name,
         data?.pickup_name,
         data?.customer_name,
@@ -107,6 +111,14 @@ function resolveTakeoutName(data, order) {
         data?.order?.pickup_name,
         data?.order?.customer_name,
         data?.order?.customerName,
+        data?.orderData?.takeout_name,
+        data?.orderData?.pickup_name,
+        data?.orderData?.customer_name,
+        data?.orderData?.customerName,
+        data?.orderChange?.takeout_name,
+        data?.orderChange?.pickup_name,
+        data?.orderChange?.customer_name,
+        data?.orderChange?.customerName,
         order?.[TAKEOUT_NAME_KEY],
         order?.takeout_name,
         order?.pickup_name,
@@ -217,22 +229,37 @@ function resolveTableLabel(data, order) {
             ? String(tableSource).trim()
             : '';
     const explicitTable = firstNonEmpty(
+        data?.headerData?.table_id?.table_number,
+        data?.headerData?.table_id?.name,
         data?.table_id?.table_number,
         data?.table_id?.name,
         data?.order?.table_id?.table_number,
         data?.order?.table_id?.name,
+        data?.orderData?.table_id?.table_number,
+        data?.orderData?.table_id?.name,
+        data?.orderChange?.table_id?.table_number,
+        data?.orderChange?.table_id?.name,
         tableObject?.table_number,
         tableObject?.name,
         tablePrimitive,
+        data?.headerData?.table_number,
         data?.table_number,
         data?.order?.table_number,
+        data?.orderData?.table_number,
+        data?.orderChange?.table_number,
         order?.table_number
     );
     const genericTable = firstNonEmpty(
+        data?.headerData?.table_name,
+        data?.headerData?.table,
         data?.table_name,
         data?.table,
         data?.order?.table_name,
         data?.order?.table,
+        data?.orderData?.table_name,
+        data?.orderData?.table,
+        data?.orderChange?.table_name,
+        data?.orderChange?.table,
         order?.table_name,
         tablePrimitive
     );
@@ -253,6 +280,10 @@ function resolveTableLabel(data, order) {
 
 function resolveOrderLabel(data, order) {
     return firstNonEmpty(
+        data?.headerData?.name,
+        data?.headerData?.trackingNumber,
+        data?.headerData?.tracking_number,
+        data?.headerData?.order_name,
         data?.name,
         data?.trackingNumber,
         data?.tracking_number,
@@ -260,11 +291,46 @@ function resolveOrderLabel(data, order) {
         data?.order?.name,
         data?.order?.trackingNumber,
         data?.order?.tracking_number,
+        data?.orderData?.name,
+        data?.orderData?.trackingNumber,
+        data?.orderData?.tracking_number,
+        data?.orderData?.order_name,
+        data?.orderChange?.name,
+        data?.orderChange?.trackingNumber,
+        data?.orderChange?.tracking_number,
+        data?.orderChange?.order_name,
         order?.name,
         order?.trackingNumber,
         order?.tracking_number,
         order?.uid
     );
+}
+
+function buildKitchenMeta(orderData, orderChange, currentOrder) {
+    const source = {
+        headerData: orderData || {},
+        orderData: orderData || {},
+        orderChange: orderChange || {},
+    };
+    const tableLabel = resolveTableLabel(source, currentOrder);
+    const takeoutName = resolveTakeoutName(source, currentOrder);
+    if (takeoutName) {
+        setTakeoutName(currentOrder, takeoutName);
+    }
+    const waiterName = firstNonEmpty(
+        currentOrder?.getCashierName ? currentOrder.getCashierName() : '',
+        orderData?.cashier,
+        orderData?.waiter,
+        orderChange?.cashier,
+        orderChange?.waiter
+    );
+    return {
+        table: tableLabel,
+        takeout_name: takeoutName,
+        order: resolveOrderLabel(source, currentOrder),
+        waiter: waiterName,
+        cashier: waiterName,
+    };
 }
 
 function parseQty(value, fallback = 1) {
@@ -696,8 +762,14 @@ async function sendToPrintQueue(data, printerType = 'receipt', printerName = nul
 
 patch(PosStore.prototype, {
     async generateReceiptsDataToPrint(orderData, changes, orderChange) {
+        activePosStore = this;
+        const currentOrder = this.getOrder ? this.getOrder() : null;
+        const kitchenMeta = buildKitchenMeta(orderData, orderChange, currentOrder);
         const receiptsData = await super.generateReceiptsDataToPrint(orderData, changes, orderChange);
-        return receiptsData.map((receiptData) => withSignedChangePayload(receiptData, changes));
+        return receiptsData.map((receiptData) => ({
+            ...withSignedChangePayload(receiptData, changes),
+            ...kitchenMeta,
+        }));
     },
 
     async printReceipt({ basic = false, order = this.getOrder(), printBillActionTriggered = false } = {}) {
@@ -772,7 +844,11 @@ patch(PosStore.prototype, {
             const printerName = resolvePrinterName(printer, 'Kitchen');
             const normalizedData = withSignedChangePayload(data);
             const tableLabel = resolveTableLabel(normalizedData, currentOrder);
-            const takeoutName = firstNonEmpty(currentOrder?.[TAKEOUT_NAME_KEY], currentOrder?.takeout_name);
+            const takeoutName = firstNonEmpty(
+                normalizedData?.takeout_name,
+                currentOrder?.[TAKEOUT_NAME_KEY],
+                currentOrder?.takeout_name
+            );
             const rawChanges =
                 normalizedData?.changes && typeof normalizedData.changes === 'object'
                     ? normalizedData.changes
@@ -782,9 +858,9 @@ patch(PosStore.prototype, {
                 printer_name: printerName,
                 table: tableLabel,
                 takeout_name: takeoutName,
-                order: resolveOrderLabel(normalizedData, currentOrder),
-                waiter: currentOrder?.getCashierName ? currentOrder.getCashierName() : '',
-                cashier: currentOrder?.getCashierName ? currentOrder.getCashierName() : '',
+                order: firstNonEmpty(normalizedData?.order, resolveOrderLabel(normalizedData, currentOrder)),
+                waiter: firstNonEmpty(normalizedData?.waiter, currentOrder?.getCashierName ? currentOrder.getCashierName() : ''),
+                cashier: firstNonEmpty(normalizedData?.cashier, currentOrder?.getCashierName ? currentOrder.getCashierName() : ''),
                 changes: rawChanges,
                 date: new Date().toISOString(),
             });
