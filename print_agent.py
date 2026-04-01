@@ -1192,6 +1192,13 @@ def _collect_signed_change_lines(changes):
 
 
 def _build_kitchen_lines(payload):
+    return [
+        {'text': row.get('text', ''), 'style': row.get('style', 'normal')}
+        for row in _build_kitchen_rows(payload)
+    ]
+
+
+def _build_kitchen_rows(payload):
     changes = payload.get('changes', {})
     raw_lines = _collect_signed_change_lines(changes)
     if not raw_lines:
@@ -1218,10 +1225,14 @@ def _build_kitchen_lines(payload):
         logger.info('[KITCHEN-DELTA] %s | qty=%s', product_name, _display_qty(qty))
 
         qty_str = _display_qty(qty)
-        for wrapped_line in _wrap_left_with_right(product_name, qty_str, width=40):
-            rendered.append({'text': wrapped_line, 'style': 'normal'})
+        rendered.append({
+            'left': product_name,
+            'right': qty_str,
+            'text': _fit_name_qty(product_name, qty_str, width=40),
+            'style': 'normal',
+        })
         if note:
-            rendered.append({'text': f" >> {note}", 'style': 'normal'})
+            rendered.append({'left': f" >> {note}", 'right': '', 'text': f" >> {note}", 'style': 'normal'})
 
     return rendered
 
@@ -1299,6 +1310,16 @@ def _emit_template_line(printer, text, elem, width=42):
     if len(line) > width:
         line = line[:width]
     printer.text(line + '\n')
+
+
+def _emit_template_rows(printer, rows, elem, width=42):
+    line_elem = dict(elem or {})
+    for row in rows or []:
+        row_style = row.get('style')
+        if row_style:
+            line_elem['style'] = row_style
+        for line in _wrap_left_with_right(row.get('left', ''), row.get('right', ''), width=width):
+            _emit_template_line(printer, line, line_elem, width=width)
 
 
 def _template_uses_visual_layout(ticket_type):
@@ -1590,6 +1611,71 @@ def _draw_separator_block(draw, rect):
         x = x2 + gap
 
 
+def _prepare_column_rows(draw, rows, style, width, height, field=''):
+    width = max(12, int(width))
+    height = max(12, int(height))
+    style_key, max_font_size, min_font_size = _style_font_metrics(style, height, field=field)
+    gap = 12
+
+    for size in range(max_font_size, min_font_size - 1, -1):
+        font = _load_visual_font(style_key, size)
+        line_height = _measure_line_height(draw, font) + max(2, int(size * 0.2))
+        right_width = 0
+        for row in rows:
+            right_width = max(right_width, _measure_text_width(draw, row.get('right', ''), font))
+        available_left = max(8, width - right_width - gap if right_width else width)
+
+        prepared = []
+        for row in rows:
+            wrapped_left = _wrap_text_for_block(draw, row.get('left', ''), font, available_left)
+            if not wrapped_left:
+                wrapped_left = ['']
+            for index, left_line in enumerate(wrapped_left):
+                prepared.append({
+                    'left': left_line,
+                    'right': row.get('right', '') if index == 0 else '',
+                })
+        if prepared:
+            return font, prepared, line_height, right_width
+
+    font = _load_visual_font(style_key, min_font_size)
+    line_height = _measure_line_height(draw, font) + 2
+    prepared = []
+    for row in rows:
+        prepared.append({'left': str(row.get('left', '')), 'right': str(row.get('right', ''))})
+    right_width = max((_measure_text_width(draw, row.get('right', ''), font) for row in rows), default=0)
+    return font, prepared, line_height, right_width
+
+
+def _draw_column_rows_block(draw, rect, rows, style='normal', field=''):
+    if not rows:
+        return
+
+    left, top, width, height = rect
+    pad_x, pad_y = _text_block_padding(width, height, style)
+    content_width = max(12, width - (pad_x * 2))
+    content_height = max(12, height - (pad_y * 2))
+    font, prepared, line_height, right_width = _prepare_column_rows(
+        draw,
+        rows,
+        style,
+        content_width,
+        content_height,
+        field=field,
+    )
+    total_height = line_height * max(1, len(prepared))
+    current_y = top + pad_y + max(0, int((content_height - total_height) / 2))
+    right_x = left + width - pad_x - right_width
+
+    for row in prepared:
+        left_text = row.get('left', '')
+        right_text = row.get('right', '')
+        draw.text((left + pad_x, current_y), left_text, fill=0, font=font)
+        if right_text:
+            draw.text((right_x, current_y), right_text, fill=0, font=font)
+        current_y += line_height
+
+
 def _draw_text_block(draw, rect, text, align='left', style='normal', field=''):
     if text is None:
         return
@@ -1636,15 +1722,26 @@ def _layout_visual_blocks(draw, blocks, scale):
             pad_x, pad_y = _text_block_padding(rect[2], rect[3], block.get('style', 'normal'))
             content_width = max(12, rect[2] - (pad_x * 2))
             content_height = max(12, rect[3] - (pad_y * 2))
-            _font, lines, line_height = _fit_text_with_growth(
-                draw,
-                str(block.get('text', '')),
-                block.get('style', 'normal'),
-                content_width,
-                content_height,
-                field=block.get('field', ''),
-            )
-            needed_height = max(rect[3], (pad_y * 2) + (line_height * max(1, len(lines))) + 2)
+            if block.get('rows'):
+                _font, prepared, line_height, _right_width = _prepare_column_rows(
+                    draw,
+                    block.get('rows', []),
+                    block.get('style', 'normal'),
+                    content_width,
+                    content_height,
+                    field=block.get('field', ''),
+                )
+                needed_height = max(rect[3], (pad_y * 2) + (line_height * max(1, len(prepared))) + 2)
+            else:
+                _font, lines, line_height = _fit_text_with_growth(
+                    draw,
+                    str(block.get('text', '')),
+                    block.get('style', 'normal'),
+                    content_width,
+                    content_height,
+                    field=block.get('field', ''),
+                )
+                needed_height = max(rect[3], (pad_y * 2) + (line_height * max(1, len(lines))) + 2)
             if needed_height > rect[3]:
                 extra_height = needed_height - rect[3]
                 rect = (rect[0], rect[1], rect[2], needed_height)
@@ -1679,6 +1776,15 @@ def _render_visual_blocks(printer, blocks):
         if block.get('field') == 'separator':
             _draw_separator_block(draw, rect)
             continue
+        if block.get('rows'):
+            _draw_column_rows_block(
+                draw,
+                rect,
+                block.get('rows', []),
+                style=block.get('style', 'normal'),
+                field=block.get('field', ''),
+            )
+            continue
         _draw_text_block(
             draw,
             rect,
@@ -1700,16 +1806,27 @@ def _render_visual_blocks(printer, blocks):
 
 
 def _build_receipt_lines(payload, currency_symbol):
+    return [
+        {'text': row.get('text', ''), 'style': row.get('style', 'normal')}
+        for row in _build_receipt_rows(payload, currency_symbol)
+    ]
+
+
+def _build_receipt_rows(payload, currency_symbol):
     lines = []
     for line in payload.get('lines', []):
         qty_text = _display_qty(line.get('qty', 0))
         price_text = line.get('price_display') or _money(line.get('price', 0), currency_symbol)
         suffix = ' '.join(part for part in (qty_text, price_text) if part)
-        for wrapped_line in _wrap_left_with_right(line.get('name', ''), suffix, width=42):
-            lines.append({'text': wrapped_line, 'style': 'normal'})
+        lines.append({
+            'left': line.get('name', ''),
+            'right': suffix,
+            'text': '\n'.join(_wrap_left_with_right(line.get('name', ''), suffix, width=42)),
+            'style': 'normal',
+        })
         unit_price_display = line.get('unit_price_display')
         if unit_price_display:
-            lines.append({'text': f'  {unit_price_display}', 'style': 'normal'})
+            lines.append({'left': f'  {unit_price_display}', 'right': '', 'text': f'  {unit_price_display}', 'style': 'normal'})
     return lines
 
 
@@ -1725,10 +1842,13 @@ def _build_receipt_template_context(payload):
         if isinstance(elem, dict) and str(elem.get('label') or '').strip()
     }
 
-    receipt_lines = _build_receipt_lines(payload, currency_symbol)
-    payments_lines = []
+    receipt_rows = _build_receipt_rows(payload, currency_symbol)
+    receipt_lines = [{'text': row.get('text', ''), 'style': row.get('style', 'normal')} for row in receipt_rows]
+    payments_rows = []
     for payment in payload.get('payments', []):
-        payments_lines.append({
+        payments_rows.append({
+            'left': payment.get('name', 'Payment'),
+            'right': payment.get('amount_display') or _money(payment.get('amount', 0), currency_symbol),
             'text': _left_right(
                 payment.get('name', 'Payment'),
                 payment.get('amount_display') or _money(payment.get('amount', 0), currency_symbol),
@@ -1747,15 +1867,15 @@ def _build_receipt_template_context(payload):
         'tax_line': _left_right(label_overrides.get('tax_line', 'Tax'), _money(payload.get('tax', 0), currency_symbol)),
         'total_line': _left_right(label_overrides.get('total_line', 'Total'), _money(payload.get('total', 0), currency_symbol)),
         'lines_block': '\n'.join(line.get('text', '') for line in receipt_lines),
-        'payments_block': '\n'.join(line.get('text', '') for line in payments_lines),
+        'payments_block': '\n'.join(line.get('text', '') for line in payments_rows),
     }
-    return context, receipt_lines, payments_lines
+    return context, receipt_lines, receipt_rows, payments_rows
 
 
 def _build_receipt_visual_blocks(payload):
     elements = _template_elements('receipt')
     source_canvas_width = _visual_source_canvas_width('receipt', elements)
-    context, _, _ = _build_receipt_template_context(payload)
+    context, _receipt_lines, receipt_rows, payments_rows = _build_receipt_template_context(payload)
     blocks = []
     cursor_y = 52
 
@@ -1768,6 +1888,7 @@ def _build_receipt_visual_blocks(payload):
             'align': str(render_elem.get('align', 'left') or 'left'),
             'style': str(render_elem.get('style', 'normal') or 'normal'),
             'text': str(render_elem.get('text') or '') if field == 'static_text' else context.get(field, ''),
+            'rows': receipt_rows if field == 'lines_block' else (payments_rows if field == 'payments_block' else None),
             'x': x,
             'y': y,
             'width': width,
@@ -1815,7 +1936,8 @@ def _build_kitchen_template_context(payload):
         payload.get('user'),
     )
 
-    kitchen_lines = _build_kitchen_lines(payload)
+    kitchen_rows = _build_kitchen_rows(payload)
+    kitchen_lines = [{'text': row.get('text', ''), 'style': row.get('style', 'normal')} for row in kitchen_rows]
     context = {
         'ticket_title': f"** {printer_label.upper()} ORDER **",
         'table_big': f"{label_overrides.get('table_big', 'TABLE')} {table_label}".strip(),
@@ -1827,13 +1949,13 @@ def _build_kitchen_template_context(payload):
         'waiter_line': _label_value_text(label_overrides.get('waiter_line', 'Waiter'), waiter_label) if waiter_label else '',
         'items_block': '\n'.join(line.get('text', '') for line in kitchen_lines),
     }
-    return context, kitchen_lines
+    return context, kitchen_lines, kitchen_rows
 
 
 def _build_kitchen_visual_blocks(payload):
     elements = _template_elements('kitchen')
     source_canvas_width = _visual_source_canvas_width('kitchen', elements)
-    context, _ = _build_kitchen_template_context(payload)
+    context, _kitchen_lines, kitchen_rows = _build_kitchen_template_context(payload)
     blocks = []
     cursor_y = 52
 
@@ -1846,6 +1968,7 @@ def _build_kitchen_visual_blocks(payload):
             'align': str(render_elem.get('align', 'left') or 'left'),
             'style': str(render_elem.get('style', 'normal') or 'normal'),
             'text': str(render_elem.get('text') or '') if field == 'static_text' else context.get(field, ''),
+            'rows': kitchen_rows if field == 'items_block' else None,
             'x': x,
             'y': y,
             'width': width,
@@ -1868,7 +1991,7 @@ def _render_receipt_template(printer, payload):
             logger.exception('Visual receipt render failed; falling back to line renderer')
 
     currency_symbol = payload.get('currency_symbol', '')
-    context, _, payments_lines = _build_receipt_template_context(payload)
+    context, _receipt_lines, receipt_rows, payments_rows = _build_receipt_template_context(payload)
 
     for elem in elements:
         field = elem.get('field')
@@ -1879,16 +2002,10 @@ def _render_receipt_template(printer, payload):
             _emit_template_line(printer, '', elem)
             continue
         if field == 'lines_block':
-            for l in _build_receipt_lines(payload, currency_symbol):
-                line_elem = dict(elem)
-                line_elem['style'] = l.get('style', line_elem.get('style', 'normal'))
-                _emit_template_line(printer, l.get('text', ''), line_elem)
+            _emit_template_rows(printer, receipt_rows, elem)
             continue
         if field == 'payments_block':
-            for l in payments_lines:
-                line_elem = dict(elem)
-                line_elem['style'] = l.get('style', line_elem.get('style', 'normal'))
-                _emit_template_line(printer, l.get('text', ''), line_elem)
+            _emit_template_rows(printer, payments_rows, elem)
             continue
         if field == 'static_text':
             value = str(elem.get('text') or '')
@@ -1910,7 +2027,7 @@ def _render_kitchen_template(printer, payload):
         except Exception:
             logger.exception('Visual kitchen render failed; falling back to line renderer')
 
-    context, kitchen_lines = _build_kitchen_template_context(payload)
+    context, _kitchen_lines, kitchen_rows = _build_kitchen_template_context(payload)
 
     import json as _json
     logger.info('[KITCHEN-DEBUG] raw changes payload: %s', _json.dumps(payload.get('changes', {}), ensure_ascii=False, default=str))
@@ -1924,10 +2041,7 @@ def _render_kitchen_template(printer, payload):
             _emit_template_line(printer, '', elem)
             continue
         if field == 'items_block':
-            for l in kitchen_lines:
-                line_elem = dict(elem)
-                line_elem['style'] = l.get('style', line_elem.get('style', 'normal'))
-                _emit_template_line(printer, l.get('text', ''), line_elem)
+            _emit_template_rows(printer, kitchen_rows, elem, width=40)
             continue
         if field == 'static_text':
             value = str(elem.get('text') or '')
