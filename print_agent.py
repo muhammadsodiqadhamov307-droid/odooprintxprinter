@@ -872,11 +872,71 @@ def _fit_columns(qty, name, price, width=42):
 def _fit_name_qty(name, qty, width=40):
     name = str(name or '')
     qty = str(qty or '')
-    reserved = len(qty) + 1
-    name_width = max(8, width - reserved)
-    display_name = _truncate(name, name_width)
-    spaces = ' ' * max(1, width - len(display_name) - len(qty))
-    return f'{display_name}{spaces}{qty}'
+    lines = _wrap_left_with_right(name, qty, width=width)
+    return '\n'.join(lines)
+
+
+def _wrap_words(text, width):
+    text = str(text or '').strip()
+    width = max(1, int(width))
+    if not text:
+        return ['']
+
+    words = text.split()
+    if not words:
+        return [_truncate(text, width)]
+
+    lines = []
+    current = words[0]
+    for word in words[1:]:
+        candidate = f'{current} {word}'
+        if len(candidate) <= width:
+            current = candidate
+        else:
+            lines.append(current)
+            current = word
+    lines.append(current)
+
+    normalized = []
+    for line in lines:
+        if len(line) <= width:
+            normalized.append(line)
+            continue
+        remainder = line
+        while len(remainder) > width:
+            normalized.append(remainder[:width])
+            remainder = remainder[width:]
+        if remainder:
+            normalized.append(remainder)
+    return normalized or ['']
+
+
+def _wrap_left_with_right(left, right, width=42):
+    left_text = str(left or '').strip()
+    right_text = str(right or '').strip()
+    width = max(8, int(width))
+
+    if not right_text:
+        return _wrap_words(left_text, width)
+
+    reserved = len(right_text) + 1
+    first_line_width = max(6, width - reserved)
+    wrapped_left = _wrap_words(left_text, first_line_width)
+    if not wrapped_left:
+        wrapped_left = ['']
+
+    first = wrapped_left[0]
+    spaces = ' ' * max(1, width - len(first) - len(right_text))
+    lines = [f'{first}{spaces}{right_text}']
+    lines.extend(_wrap_words(line, width) for line in wrapped_left[1:])
+
+    flattened = []
+    for line in lines:
+        if isinstance(line, list):
+            flattened.extend(line)
+        else:
+            flattened.append(line)
+    return flattened
 
 
 def _resolve_printer_name(payload, default=None):
@@ -1158,7 +1218,8 @@ def _build_kitchen_lines(payload):
         logger.info('[KITCHEN-DELTA] %s | qty=%s', product_name, _display_qty(qty))
 
         qty_str = _display_qty(qty)
-        rendered.append({'text': _fit_name_qty(product_name, qty_str), 'style': 'normal'})
+        for wrapped_line in _wrap_left_with_right(product_name, qty_str, width=40):
+            rendered.append({'text': wrapped_line, 'style': 'normal'})
         if note:
             rendered.append({'text': f" >> {note}", 'style': 'normal'})
 
@@ -1643,7 +1704,9 @@ def _build_receipt_lines(payload, currency_symbol):
     for line in payload.get('lines', []):
         qty_text = _display_qty(line.get('qty', 0))
         price_text = line.get('price_display') or _money(line.get('price', 0), currency_symbol)
-        lines.append({'text': _fit_columns(qty_text, line.get('name', ''), price_text), 'style': 'normal'})
+        suffix = ' '.join(part for part in (qty_text, price_text) if part)
+        for wrapped_line in _wrap_left_with_right(line.get('name', ''), suffix, width=42):
+            lines.append({'text': wrapped_line, 'style': 'normal'})
         unit_price_display = line.get('unit_price_display')
         if unit_price_display:
             lines.append({'text': f'  {unit_price_display}', 'style': 'normal'})
