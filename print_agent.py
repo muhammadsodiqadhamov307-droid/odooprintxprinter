@@ -1001,22 +1001,18 @@ def _looks_like_synthetic_takeout_label(value):
     return bool(re.fullmatch(r'\d+\s*x', text, flags=re.IGNORECASE))
 
 
-def _looks_like_actual_table_label(value):
-    text = str(value or '').strip()
-    return bool(re.search(r'\d', text))
-
-
 def _resolve_table_label(payload):
     explicit_table = _first_non_empty(
         payload.get('table_id', {}).get('table_number') if isinstance(payload.get('table_id'), dict) else None,
         payload.get('table_id', {}).get('name') if isinstance(payload.get('table_id'), dict) else None,
         payload.get('table_number'),
+        payload.get('table'),
     )
     generic_table = _first_non_empty(
-        payload.get('table'),
         payload.get('table_name'),
+        payload.get('table'),
     )
-    raw_table = explicit_table or (generic_table if _looks_like_actual_table_label(generic_table) else '')
+    raw_table = explicit_table or generic_table
     takeout_name = _first_non_empty(payload.get('takeout_name'))
     if takeout_name and (_is_placeholder_label(raw_table) or _looks_like_synthetic_takeout_label(raw_table)):
         return takeout_name or raw_table

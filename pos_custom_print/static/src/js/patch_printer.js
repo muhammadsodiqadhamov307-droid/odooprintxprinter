@@ -40,11 +40,6 @@ function looksLikeSyntheticTakeoutLabel(value) {
     return /^\d+\s*x$/i.test(text);
 }
 
-function looksLikeActualTableLabel(value) {
-    const text = String(value ?? '').trim();
-    return /\d/.test(text);
-}
-
 function resolvePrinterName(printer, fallback = 'Kitchen') {
     return firstNonEmpty(
         printer?.name,
@@ -215,14 +210,20 @@ function ensureTakeoutObserver() {
 ensureTakeoutObserver();
 
 function resolveTableLabel(data, order) {
-    const table = order?.table_id || order?.table || order?.tableId || order?.getTable?.();
+    const tableSource = order?.getTable?.() ?? order?.table_id ?? order?.tableId ?? order?.table;
+    const tableObject = tableSource && typeof tableSource === 'object' ? tableSource : null;
+    const tablePrimitive =
+        tableSource !== null && tableSource !== undefined && typeof tableSource !== 'object'
+            ? String(tableSource).trim()
+            : '';
     const explicitTable = firstNonEmpty(
         data?.table_id?.table_number,
         data?.table_id?.name,
         data?.order?.table_id?.table_number,
         data?.order?.table_id?.name,
-        table?.table_number,
-        table?.name,
+        tableObject?.table_number,
+        tableObject?.name,
+        tablePrimitive,
         data?.table_number,
         data?.order?.table_number,
         order?.table_number
@@ -232,12 +233,10 @@ function resolveTableLabel(data, order) {
         data?.table,
         data?.order?.table_name,
         data?.order?.table,
-        order?.table_name
+        order?.table_name,
+        tablePrimitive
     );
-    const rawTable = firstNonEmpty(
-        explicitTable,
-        looksLikeActualTableLabel(genericTable) ? genericTable : ''
-    );
+    const rawTable = firstNonEmpty(explicitTable, genericTable);
     const takeoutName = resolveTakeoutName(data, order);
     if (rawTable && !isPlaceholderLabel(rawTable) && !looksLikeSyntheticTakeoutLabel(rawTable)) {
         if (order) {
