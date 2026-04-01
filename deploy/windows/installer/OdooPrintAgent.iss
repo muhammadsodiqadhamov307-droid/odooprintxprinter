@@ -2,7 +2,7 @@
 ; Build with: iscc deploy\windows\installer\OdooPrintAgent.iss
 
 #define MyAppName "Odoo Custom Print Agent"
-#define MyAppVersion "1.0.33"
+#define MyAppVersion "1.0.34"
 #define MyAppPublisher "Your Company"
 #define MyAppExeName "print_agent.py"
 

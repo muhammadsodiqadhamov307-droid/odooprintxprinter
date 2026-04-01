@@ -940,6 +940,31 @@ def _wrap_left_with_right(left, right, width=42):
     return flattened
 
 
+def _wrap_left_with_column(left, right, column=24, width=42, gap=2):
+    left_text = str(left or '').strip()
+    right_text = str(right or '').strip()
+    width = max(8, int(width))
+    column = max(6, min(int(column), width - 1))
+    gap = max(1, int(gap))
+
+    if not right_text:
+        return _wrap_words(left_text, width)
+
+    left_width = max(6, column - gap)
+    wrapped_left = _wrap_words(left_text, left_width)
+    if not wrapped_left:
+        wrapped_left = ['']
+
+    lines = []
+    for index, left_line in enumerate(wrapped_left):
+        if index == 0:
+            spaces = ' ' * max(gap, column - len(left_line))
+            lines.append(f'{left_line}{spaces}{right_text}')
+        else:
+            lines.append(left_line)
+    return lines
+
+
 def _resolve_printer_name(payload, default=None):
     try:
         if isinstance(payload, dict):
@@ -976,14 +1001,22 @@ def _looks_like_synthetic_takeout_label(value):
     return bool(re.fullmatch(r'\d+\s*x', text, flags=re.IGNORECASE))
 
 
+def _looks_like_actual_table_label(value):
+    text = str(value or '').strip()
+    return bool(re.search(r'\d', text))
+
+
 def _resolve_table_label(payload):
-    raw_table = _first_non_empty(
-        payload.get('table'),
-        payload.get('table_name'),
-        payload.get('table_number'),
+    explicit_table = _first_non_empty(
         payload.get('table_id', {}).get('table_number') if isinstance(payload.get('table_id'), dict) else None,
         payload.get('table_id', {}).get('name') if isinstance(payload.get('table_id'), dict) else None,
+        payload.get('table_number'),
     )
+    generic_table = _first_non_empty(
+        payload.get('table'),
+        payload.get('table_name'),
+    )
+    raw_table = explicit_table or (generic_table if _looks_like_actual_table_label(generic_table) else '')
     takeout_name = _first_non_empty(payload.get('takeout_name'))
     if takeout_name and (_is_placeholder_label(raw_table) or _looks_like_synthetic_takeout_label(raw_table)):
         return takeout_name or raw_table
@@ -1343,7 +1376,17 @@ def _emit_template_rows(printer, rows, elem, width=42):
         row_style = row.get('style')
         if row_style:
             line_elem['style'] = row_style
-        for line in _wrap_left_with_right(row.get('left', ''), row.get('right', ''), width=width):
+        if row.get('right_align') == 'column_left':
+            wrapped_lines = _wrap_left_with_column(
+                row.get('left', ''),
+                row.get('right', ''),
+                column=row.get('column', 24),
+                width=width,
+                gap=row.get('gap', 2),
+            )
+        else:
+            wrapped_lines = _wrap_left_with_right(row.get('left', ''), row.get('right', ''), width=width)
+        for line in wrapped_lines:
             _emit_template_line(printer, line, line_elem, width=width)
 
 
@@ -1648,17 +1691,29 @@ def _prepare_column_rows(draw, rows, style, width, height, field=''):
         right_width = 0
         for row in rows:
             right_width = max(right_width, _measure_text_width(draw, row.get('right', ''), font))
-        available_left = max(8, width - right_width - gap if right_width else width)
 
         prepared = []
         for row in rows:
+            right_text = str(row.get('right', '') or '')
+            align_mode = str(row.get('right_align', 'edge_right') or 'edge_right').lower()
+            if right_text:
+                if align_mode == 'column_left':
+                    ratio = _as_float(row.get('column_ratio', 0.58), 0.58)
+                    ratio = max(0.35, min(ratio, 0.80))
+                    right_x = max(24, min(int(width * ratio), max(24, width - _measure_text_width(draw, right_text, font))))
+                else:
+                    right_x = max(24, width - right_width)
+            else:
+                right_x = width
+            available_left = max(8, right_x - gap)
             wrapped_left = _wrap_text_for_block(draw, row.get('left', ''), font, available_left)
             if not wrapped_left:
                 wrapped_left = ['']
             for index, left_line in enumerate(wrapped_left):
                 prepared.append({
                     'left': left_line,
-                    'right': row.get('right', '') if index == 0 else '',
+                    'right': right_text if index == 0 else '',
+                    'right_x': right_x,
                 })
         if prepared:
             return font, prepared, line_height, right_width
@@ -1667,7 +1722,21 @@ def _prepare_column_rows(draw, rows, style, width, height, field=''):
     line_height = _measure_line_height(draw, font) + 2
     prepared = []
     for row in rows:
-        prepared.append({'left': str(row.get('left', '')), 'right': str(row.get('right', ''))})
+        right_text = str(row.get('right', '') or '')
+        align_mode = str(row.get('right_align', 'edge_right') or 'edge_right').lower()
+        if right_text and align_mode == 'column_left':
+            ratio = _as_float(row.get('column_ratio', 0.58), 0.58)
+            ratio = max(0.35, min(ratio, 0.80))
+            right_x = max(24, min(int(width * ratio), max(24, width - _measure_text_width(draw, right_text, font))))
+        elif right_text:
+            right_x = max(24, width - _measure_text_width(draw, right_text, font))
+        else:
+            right_x = width
+        prepared.append({
+            'left': str(row.get('left', '')),
+            'right': right_text,
+            'right_x': right_x,
+        })
     right_width = max((_measure_text_width(draw, row.get('right', ''), font) for row in rows), default=0)
     return font, prepared, line_height, right_width
 
@@ -1690,14 +1759,12 @@ def _draw_column_rows_block(draw, rect, rows, style='normal', field=''):
     )
     total_height = line_height * max(1, len(prepared))
     current_y = top + pad_y + max(0, int((content_height - total_height) / 2))
-    right_x = left + width - pad_x - right_width
-
     for row in prepared:
         left_text = row.get('left', '')
         right_text = row.get('right', '')
         draw.text((left + pad_x, current_y), left_text, fill=0, font=font)
         if right_text:
-            draw.text((right_x, current_y), right_text, fill=0, font=font)
+            draw.text((left + pad_x + int(row.get('right_x', content_width - right_width)), current_y), right_text, fill=0, font=font)
         current_y += line_height
 
 
@@ -1845,13 +1912,14 @@ def _build_receipt_rows(payload, currency_symbol):
         name_qty = line.get('name', '')
         if qty_text:
             name_qty = f'{name_qty} x {qty_text}'
-        left_text = name_qty
-        if price_text:
-            left_text = f'{left_text}  {price_text}' if left_text else price_text
         lines.append({
-            'left': left_text,
-            'right': '',
-            'text': left_text,
+            'left': name_qty,
+            'right': price_text,
+            'right_align': 'column_left',
+            'column_ratio': 0.56,
+            'column': 24,
+            'gap': 2,
+            'text': _wrap_left_with_column(name_qty, price_text, column=24, width=42, gap=2)[0] if price_text else name_qty,
             'style': 'normal',
         })
         unit_price_display = line.get('unit_price_display')
@@ -1879,12 +1947,69 @@ def _build_receipt_template_context(payload):
         payments_rows.append({
             'left': payment.get('name', 'Payment'),
             'right': payment.get('amount_display') or _money(payment.get('amount', 0), currency_symbol),
-            'text': _left_right(
+            'right_align': 'column_left',
+            'column_ratio': 0.56,
+            'column': 24,
+            'gap': 2,
+            'text': _wrap_left_with_column(
                 payment.get('name', 'Payment'),
                 payment.get('amount_display') or _money(payment.get('amount', 0), currency_symbol),
-            ),
+                column=24,
+                width=42,
+                gap=2,
+            )[0],
             'style': 'normal',
         })
+    summary_rows = {
+        'subtotal_line': [{
+            'left': label_overrides.get('subtotal_line', 'Subtotal'),
+            'right': _money(payload.get('subtotal', 0), currency_symbol),
+            'right_align': 'column_left',
+            'column_ratio': 0.56,
+            'column': 24,
+            'gap': 2,
+            'text': _wrap_left_with_column(
+                label_overrides.get('subtotal_line', 'Subtotal'),
+                _money(payload.get('subtotal', 0), currency_symbol),
+                column=24,
+                width=42,
+                gap=2,
+            )[0],
+            'style': 'normal',
+        }],
+        'tax_line': [{
+            'left': label_overrides.get('tax_line', 'Tax'),
+            'right': _money(payload.get('tax', 0), currency_symbol),
+            'right_align': 'column_left',
+            'column_ratio': 0.56,
+            'column': 24,
+            'gap': 2,
+            'text': _wrap_left_with_column(
+                label_overrides.get('tax_line', 'Tax'),
+                _money(payload.get('tax', 0), currency_symbol),
+                column=24,
+                width=42,
+                gap=2,
+            )[0],
+            'style': 'normal',
+        }],
+        'total_line': [{
+            'left': label_overrides.get('total_line', 'Total'),
+            'right': _money(payload.get('total', 0), currency_symbol),
+            'right_align': 'column_left',
+            'column_ratio': 0.56,
+            'column': 24,
+            'gap': 2,
+            'text': _wrap_left_with_column(
+                label_overrides.get('total_line', 'Total'),
+                _money(payload.get('total', 0), currency_symbol),
+                column=24,
+                width=42,
+                gap=2,
+            )[0],
+            'style': 'normal',
+        }],
+    }
 
     context = {
         'company_name': payload.get('company_name', 'Odoo POS'),
@@ -1893,19 +2018,19 @@ def _build_receipt_template_context(payload):
         'cashier_line': _label_value_text(label_overrides.get('cashier_line', 'Served by'), payload.get('cashier', '')) if payload.get('cashier') else '',
         'table_guests_line': f"Table: {table_label}" if table_label else '',
         'tracking_number': payload.get('tracking_number') or '',
-        'subtotal_line': _left_right(label_overrides.get('subtotal_line', 'Subtotal'), _money(payload.get('subtotal', 0), currency_symbol)),
-        'tax_line': _left_right(label_overrides.get('tax_line', 'Tax'), _money(payload.get('tax', 0), currency_symbol)),
-        'total_line': _left_right(label_overrides.get('total_line', 'Total'), _money(payload.get('total', 0), currency_symbol)),
+        'subtotal_line': summary_rows['subtotal_line'][0]['text'],
+        'tax_line': summary_rows['tax_line'][0]['text'],
+        'total_line': summary_rows['total_line'][0]['text'],
         'lines_block': '\n'.join(line.get('text', '') for line in receipt_lines),
         'payments_block': '\n'.join(line.get('text', '') for line in payments_rows),
     }
-    return context, receipt_lines, receipt_rows, payments_rows
+    return context, receipt_lines, receipt_rows, payments_rows, summary_rows
 
 
 def _build_receipt_visual_blocks(payload):
     elements = _template_elements('receipt')
     source_canvas_width = _visual_source_canvas_width('receipt', elements)
-    context, _receipt_lines, receipt_rows, payments_rows = _build_receipt_template_context(payload)
+    context, _receipt_lines, receipt_rows, payments_rows, summary_rows = _build_receipt_template_context(payload)
     blocks = []
     cursor_y = 52
 
@@ -1918,7 +2043,7 @@ def _build_receipt_visual_blocks(payload):
             'align': str(render_elem.get('align', 'left') or 'left'),
             'style': str(render_elem.get('style', 'normal') or 'normal'),
             'text': str(render_elem.get('text') or '') if field == 'static_text' else context.get(field, ''),
-            'rows': receipt_rows if field == 'lines_block' else (payments_rows if field == 'payments_block' else None),
+            'rows': receipt_rows if field == 'lines_block' else (payments_rows if field == 'payments_block' else summary_rows.get(field)),
             'x': x,
             'y': y,
             'width': width,
@@ -2014,7 +2139,7 @@ def _render_receipt_template(printer, payload):
             logger.exception('Visual receipt render failed; falling back to line renderer')
 
     currency_symbol = payload.get('currency_symbol', '')
-    context, _receipt_lines, receipt_rows, payments_rows = _build_receipt_template_context(payload)
+    context, _receipt_lines, receipt_rows, payments_rows, summary_rows = _build_receipt_template_context(payload)
 
     for elem in elements:
         field = elem.get('field')
@@ -2029,6 +2154,9 @@ def _render_receipt_template(printer, payload):
             continue
         if field == 'payments_block':
             _emit_template_rows(printer, payments_rows, elem)
+            continue
+        if field in summary_rows:
+            _emit_template_rows(printer, summary_rows[field], elem)
             continue
         if field == 'static_text':
             value = str(elem.get('text') or '')

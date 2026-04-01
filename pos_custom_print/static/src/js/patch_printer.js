@@ -15,6 +15,7 @@ const TAKEOUT_NAME_KEY = '__posCustomPrintTakeoutName';
 let activePosStore = null;
 let takeoutObserverStarted = false;
 let lastTakeoutName = '';
+let lastTakeoutOrderKey = '';
 
 function firstNonEmpty(...values) {
     for (const value of values) {
@@ -37,6 +38,11 @@ function isPlaceholderLabel(value) {
 function looksLikeSyntheticTakeoutLabel(value) {
     const text = String(value ?? '').trim();
     return /^\d+\s*x$/i.test(text);
+}
+
+function looksLikeActualTableLabel(value) {
+    const text = String(value ?? '').trim();
+    return /\d/.test(text);
 }
 
 function resolvePrinterName(printer, fallback = 'Kitchen') {
@@ -63,18 +69,34 @@ function currentOrder() {
     return activePosStore?.getOrder ? activePosStore.getOrder() : null;
 }
 
+function orderCacheKey(order) {
+    return firstNonEmpty(order?.uid, order?.uuid, order?.cid, order?.name, order?.id);
+}
+
 function setTakeoutName(order, rawName) {
     const name = firstNonEmpty(rawName);
     if (!order || !name) {
         return;
     }
     lastTakeoutName = name;
+    lastTakeoutOrderKey = orderCacheKey(order);
     order[TAKEOUT_NAME_KEY] = name;
     order.takeout_name = name;
 }
 
+function clearTakeoutName(order) {
+    if (order) {
+        delete order[TAKEOUT_NAME_KEY];
+        delete order.takeout_name;
+    }
+    lastTakeoutName = '';
+    lastTakeoutOrderKey = '';
+}
+
 function resolveTakeoutName(data, order) {
     const partner = order?.get_partner?.() || order?.partner || order?.partner_id;
+    const scopedLastTakeoutName =
+        order && orderCacheKey(order) && orderCacheKey(order) === lastTakeoutOrderKey ? lastTakeoutName : '';
     return firstNonEmpty(
         data?.takeout_name,
         data?.pickup_name,
@@ -102,7 +124,7 @@ function resolveTakeoutName(data, order) {
         order?.uiState?.orderName,
         order?.uiState?.name,
         partner?.name,
-        lastTakeoutName
+        scopedLastTakeoutName
     );
 }
 
@@ -194,27 +216,40 @@ ensureTakeoutObserver();
 
 function resolveTableLabel(data, order) {
     const table = order?.table_id || order?.table || order?.tableId || order?.getTable?.();
-    const rawTable = firstNonEmpty(
-        data?.table_name,
-        data?.table,
-        data?.table_number,
+    const explicitTable = firstNonEmpty(
         data?.table_id?.table_number,
         data?.table_id?.name,
-        data?.order?.table_name,
-        data?.order?.table,
-        data?.order?.table_number,
         data?.order?.table_id?.table_number,
         data?.order?.table_id?.name,
         table?.table_number,
         table?.name,
-        order?.table_name,
+        data?.table_number,
+        data?.order?.table_number,
         order?.table_number
     );
+    const genericTable = firstNonEmpty(
+        data?.table_name,
+        data?.table,
+        data?.order?.table_name,
+        data?.order?.table,
+        order?.table_name
+    );
+    const rawTable = firstNonEmpty(
+        explicitTable,
+        looksLikeActualTableLabel(genericTable) ? genericTable : ''
+    );
     const takeoutName = resolveTakeoutName(data, order);
-    if (takeoutName && (isPlaceholderLabel(rawTable) || looksLikeSyntheticTakeoutLabel(rawTable))) {
-        return firstNonEmpty(takeoutName, rawTable);
+    if (rawTable && !isPlaceholderLabel(rawTable) && !looksLikeSyntheticTakeoutLabel(rawTable)) {
+        if (order) {
+            clearTakeoutName(order);
+        }
+        return rawTable;
     }
-    return firstNonEmpty(rawTable, takeoutName);
+    if (takeoutName) {
+        setTakeoutName(order, takeoutName);
+        return takeoutName;
+    }
+    return '';
 }
 
 function resolveOrderLabel(data, order) {
@@ -670,11 +705,8 @@ patch(PosStore.prototype, {
         try {
             activePosStore = this;
             if (order) {
-                const takeoutName = resolveTakeoutName(null, order);
-                if (takeoutName) {
-                    setTakeoutName(order, takeoutName);
-                }
                 const tableLabel = resolveTableLabel({}, order);
+                const takeoutName = firstNonEmpty(order?.[TAKEOUT_NAME_KEY], order?.takeout_name);
                 const printData = JSON.stringify({
                     type: 'receipt',
                     company_name: order.company?.name || 'Odoo POS',
@@ -740,10 +772,8 @@ patch(PosStore.prototype, {
             const currentOrder = this.getOrder ? this.getOrder() : null;
             const printerName = resolvePrinterName(printer, 'Kitchen');
             const normalizedData = withSignedChangePayload(data);
-            const takeoutName = resolveTakeoutName(normalizedData, currentOrder);
-            if (takeoutName) {
-                setTakeoutName(currentOrder, takeoutName);
-            }
+            const tableLabel = resolveTableLabel(normalizedData, currentOrder);
+            const takeoutName = firstNonEmpty(currentOrder?.[TAKEOUT_NAME_KEY], currentOrder?.takeout_name);
             const rawChanges =
                 normalizedData?.changes && typeof normalizedData.changes === 'object'
                     ? normalizedData.changes
@@ -751,7 +781,7 @@ patch(PosStore.prototype, {
             const printData = JSON.stringify({
                 type: 'kitchen',
                 printer_name: printerName,
-                table: resolveTableLabel(normalizedData, currentOrder),
+                table: tableLabel,
                 takeout_name: takeoutName,
                 order: resolveOrderLabel(normalizedData, currentOrder),
                 waiter: currentOrder?.getCashierName ? currentOrder.getCashierName() : '',
