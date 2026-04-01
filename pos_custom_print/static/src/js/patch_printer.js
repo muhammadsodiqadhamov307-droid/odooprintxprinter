@@ -29,6 +29,11 @@ function firstNonEmpty(...values) {
     return '';
 }
 
+function isPlaceholderLabel(value) {
+    const text = String(value ?? '').trim().toLowerCase();
+    return ['n/a', 'na', '-', '--', 'none', 'null'].includes(text);
+}
+
 function resolvePrinterName(printer, fallback = 'Kitchen') {
     return firstNonEmpty(
         printer?.name,
@@ -179,7 +184,7 @@ ensureTakeoutObserver();
 
 function resolveTableLabel(data, order) {
     const table = order?.table_id || order?.table || order?.tableId || order?.getTable?.();
-    return firstNonEmpty(
+    const rawTable = firstNonEmpty(
         data?.table_name,
         data?.table,
         data?.table_number,
@@ -193,9 +198,13 @@ function resolveTableLabel(data, order) {
         table?.table_number,
         table?.name,
         order?.table_name,
-        order?.table_number,
-        resolveTakeoutName(data, order)
+        order?.table_number
     );
+    const takeoutName = resolveTakeoutName(data, order);
+    if (isPlaceholderLabel(rawTable)) {
+        return firstNonEmpty(takeoutName, rawTable);
+    }
+    return firstNonEmpty(rawTable, takeoutName);
 }
 
 function resolveOrderLabel(data, order) {

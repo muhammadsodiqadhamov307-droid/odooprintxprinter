@@ -965,6 +965,25 @@ def _first_non_empty(*values):
     return ''
 
 
+def _is_placeholder_label(value):
+    text = str(value or '').strip().lower()
+    return text in {'n/a', 'na', '-', '--', 'none', 'null'}
+
+
+def _resolve_table_label(payload):
+    raw_table = _first_non_empty(
+        payload.get('table'),
+        payload.get('table_name'),
+        payload.get('table_number'),
+        payload.get('table_id', {}).get('table_number') if isinstance(payload.get('table_id'), dict) else None,
+        payload.get('table_id', {}).get('name') if isinstance(payload.get('table_id'), dict) else None,
+    )
+    takeout_name = _first_non_empty(payload.get('takeout_name'))
+    if _is_placeholder_label(raw_table):
+        return takeout_name or raw_table
+    return raw_table or takeout_name
+
+
 def _parse_qty(value, default=1.0):
     if value is None:
         return float(default)
@@ -1817,11 +1836,16 @@ def _build_receipt_rows(payload, currency_symbol):
     for line in payload.get('lines', []):
         qty_text = _display_qty(line.get('qty', 0))
         price_text = line.get('price_display') or _money(line.get('price', 0), currency_symbol)
-        suffix = ' '.join(part for part in (qty_text, price_text) if part)
+        name_qty = line.get('name', '')
+        if qty_text:
+            name_qty = f'{name_qty} x {qty_text}'
+        left_text = name_qty
+        if price_text:
+            left_text = f'{left_text}   {price_text}' if left_text else price_text
         lines.append({
-            'left': line.get('name', ''),
-            'right': suffix,
-            'text': '\n'.join(_wrap_left_with_right(line.get('name', ''), suffix, width=42)),
+            'left': left_text,
+            'right': '',
+            'text': left_text,
             'style': 'normal',
         })
         unit_price_display = line.get('unit_price_display')
@@ -1832,9 +1856,9 @@ def _build_receipt_rows(payload, currency_symbol):
 
 def _build_receipt_template_context(payload):
     currency_symbol = payload.get('currency_symbol', '')
-    table_label = payload.get('table') or payload.get('takeout_name') or '-'
+    table_label = _resolve_table_label(payload) or '-'
     guest_label = payload.get('customer_count') or '-'
-    is_takeout_name = bool(payload.get('takeout_name')) and str(payload.get('table') or '').strip() == str(payload.get('takeout_name') or '').strip()
+    is_takeout_name = bool(payload.get('takeout_name')) and table_label == str(payload.get('takeout_name') or '').strip()
     elements = _template_elements('receipt')
     label_overrides = {
         str(elem.get('field') or '').strip(): str(elem.get('label') or '').strip()
@@ -1861,7 +1885,7 @@ def _build_receipt_template_context(payload):
         'order_name_line': f"{label_overrides.get('order_name_line', 'Ticket')} {payload.get('order_name', '')}".strip() if payload.get('order_name') else '',
         'date_line': f"{payload.get('date', '')[:19].replace('T', ' ')}" if payload.get('date') else '',
         'cashier_line': _label_value_text(label_overrides.get('cashier_line', 'Served by'), payload.get('cashier', '')) if payload.get('cashier') else '',
-        'table_guests_line': f"Table: {table_label}" if payload.get('table') else '',
+        'table_guests_line': f"Table: {table_label}" if table_label else '',
         'tracking_number': payload.get('tracking_number') or '',
         'subtotal_line': _left_right(label_overrides.get('subtotal_line', 'Subtotal'), _money(payload.get('subtotal', 0), currency_symbol)),
         'tax_line': _left_right(label_overrides.get('tax_line', 'Tax'), _money(payload.get('tax', 0), currency_symbol)),
@@ -1912,14 +1936,7 @@ def _build_kitchen_template_context(payload):
         payload.get('printer'),
         'Kitchen',
     )
-    table_label = _first_non_empty(
-        payload.get('table'),
-        payload.get('takeout_name'),
-        payload.get('table_name'),
-        payload.get('table_number'),
-        payload.get('table_id', {}).get('table_number') if isinstance(payload.get('table_id'), dict) else None,
-        payload.get('table_id', {}).get('name') if isinstance(payload.get('table_id'), dict) else None,
-    ) or 'N/A'
+    table_label = _resolve_table_label(payload) or 'N/A'
     is_takeout_name = bool(payload.get('takeout_name')) and table_label == str(payload.get('takeout_name')).strip()
     order_label = _first_non_empty(
         payload.get('order'),
