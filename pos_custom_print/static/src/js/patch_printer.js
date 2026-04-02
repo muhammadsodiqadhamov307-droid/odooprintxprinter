@@ -258,7 +258,7 @@ function isDailySalesButton(button) {
     if (!text) {
         return false;
     }
-    if (!/(kundalik\s*sotuv|daily\s*sales|sales\s*details)/i.test(text)) {
+    if (!/(kundalik\s*sotuv|daily\s*sale(s)?|sales\s*details)/i.test(text)) {
         return false;
     }
     const dialog = button.closest('[role="dialog"], .modal, .popup, .dialog');
