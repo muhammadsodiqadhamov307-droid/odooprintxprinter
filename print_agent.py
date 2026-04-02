@@ -2231,7 +2231,7 @@ def _render_daily_sales_report(printer, payload):
     company_name = _first_non_empty(payload.get('company_name'), 'Odoo POS')
     printer.text(company_name + '\n')
     printer.set(align='left', font='a', bold=True, height=1, width=1)
-    printer.text('Sales\n')
+    printer.text('Savdo\n')
     printer.set(align='left', font='a', bold=False, height=1, width=1)
     printer.text('-' * 42 + '\n')
 
@@ -2254,7 +2254,7 @@ def _render_daily_sales_report(printer, payload):
                     printer.text(line + '\n')
             printer.set(align='left', font='a', bold=True, height=1, width=1)
             for line in _wrap_three_columns(
-                'Total',
+                'Jami',
                 _display_qty(item.get('qty', 0)),
                 money(item.get('total', 0)),
                 width=42,
@@ -2269,7 +2269,7 @@ def _render_daily_sales_report(printer, payload):
     payments = payload.get('payments') or []
     if payments:
         printer.set(align='left', font='a', bold=True, height=1, width=1)
-        printer.text('PAYMENTS\n')
+        printer.text("To'lovlar\n")
         printer.set(align='left', font='a', bold=False, height=1, width=1)
         for payment in payments:
             label = _first_non_empty(payment.get('name'), payment.get('journal_name'), 'Payment')
@@ -2279,7 +2279,7 @@ def _render_daily_sales_report(printer, payload):
         printer.text('-' * 42 + '\n')
 
     printer.set(align='left', font='a', bold=True, height=1, width=1)
-    for line in _wrap_left_with_right('Grand Total', money(payload.get('total_paid', 0)), width=42):
+    for line in _wrap_left_with_right('Umumiy jami', money(payload.get('total_paid', 0)), width=42):
         printer.text(line + '\n')
 
 
