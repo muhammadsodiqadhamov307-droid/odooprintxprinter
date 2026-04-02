@@ -16,6 +16,7 @@ let activePosStore = null;
 let takeoutObserverStarted = false;
 let lastTakeoutName = '';
 let lastTakeoutOrderKey = '';
+let dailySalesPrintInFlight = false;
 
 function firstNonEmpty(...values) {
     for (const value of values) {
@@ -62,6 +63,31 @@ function normalizedNodeText(node) {
 
 function currentOrder() {
     return activePosStore?.getOrder ? activePosStore.getOrder() : null;
+}
+
+function asInt(value) {
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) ? parsed : null;
+}
+
+function resolveSessionId(pos) {
+    return (
+        asInt(pos?.pos_session?.id) ??
+        asInt(pos?.pos_session?.[0]) ??
+        asInt(pos?.session?.id) ??
+        asInt(pos?.session?.[0]) ??
+        asInt(pos?.config?.current_session_id?.id) ??
+        asInt(pos?.config?.current_session_id?.[0]) ??
+        asInt(pos?.config?.current_session_id)
+    );
+}
+
+function resolveConfigId(pos) {
+    return (
+        asInt(pos?.config?.id) ??
+        asInt(pos?.config_id?.id) ??
+        asInt(pos?.config_id?.[0])
+    );
 }
 
 function orderCacheKey(order) {
@@ -223,6 +249,84 @@ function ensureTakeoutObserver() {
 }
 
 ensureTakeoutObserver();
+
+function isDailySalesButton(button) {
+    if (!(button instanceof HTMLElement) || !isVisibleElement(button)) {
+        return false;
+    }
+    const text = normalizedNodeText(button).toLowerCase();
+    if (!text) {
+        return false;
+    }
+    if (!/(kundalik\s*sotuv|daily\s*sales|sales\s*details)/i.test(text)) {
+        return false;
+    }
+    const dialog = button.closest('[role="dialog"], .modal, .popup, .dialog');
+    if (!dialog) {
+        return false;
+    }
+    const dialogText = normalizedNodeText(dialog).toLowerCase();
+    return /(registrni\s*yopish|close\s*register|closing\s*control)/i.test(dialogText);
+}
+
+async function fetchDailySalesReportData() {
+    const pos = activePosStore;
+    if (!pos) {
+        throw new Error('POS store is not ready yet');
+    }
+    const sessionId = resolveSessionId(pos);
+    const configId = resolveConfigId(pos);
+    const response = await fetch('/pos/daily_sales_report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            jsonrpc: '2.0',
+            method: 'call',
+            id: Date.now(),
+            params: {
+                session_id: sessionId,
+                config_id: configId,
+            },
+        }),
+    });
+    if (!response.ok) {
+        throw new Error(`Daily sales request failed with HTTP ${response.status}`);
+    }
+    const result = await response.json();
+    if (!result?.result?.success || !result?.result?.data) {
+        throw new Error(result?.result?.error || 'Could not build daily sales report');
+    }
+    return result.result.data;
+}
+
+async function handleDailySalesClick(event) {
+    const button = event.target?.closest?.('button');
+    if (!button || !isDailySalesButton(button)) {
+        return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    if (dailySalesPrintInFlight) {
+        return;
+    }
+    dailySalesPrintInFlight = true;
+    button.disabled = true;
+    try {
+        const data = await fetchDailySalesReportData();
+        await sendToPrintQueue(JSON.stringify(data), 'receipt', 'Receipt');
+    } catch (error) {
+        console.error('[PosCustomPrint] Failed to print daily sales report:', error);
+        window.alert(`Daily sales print failed: ${error?.message || error}`);
+    } finally {
+        button.disabled = false;
+        dailySalesPrintInFlight = false;
+    }
+}
+
+if (typeof document !== 'undefined') {
+    document.addEventListener('click', handleDailySalesClick, true);
+}
 
 function resolveTableLabel(data, order) {
     const tableSource = order?.getTable?.() ?? order?.table_id ?? order?.tableId ?? order?.table;
@@ -726,6 +830,11 @@ async function sendToPrintQueue(data, printerType = 'receipt', printerName = nul
 }
 
 patch(PosStore.prototype, {
+    getOrder(...args) {
+        activePosStore = this;
+        return super.getOrder(...args);
+    },
+
     async generateReceiptsDataToPrint(orderData, changes, orderChange) {
         const receiptsData = await super.generateReceiptsDataToPrint(orderData, changes, orderChange);
         return receiptsData.map((receiptData) => withSignedChangePayload(receiptData, changes));

@@ -2197,6 +2197,73 @@ def _render_kitchen_template(printer, payload):
             _emit_template_line(printer, value, elem)
 
 
+def _render_daily_sales_report(printer, payload):
+    currency_symbol = payload.get('currency_symbol', '')
+
+    def money(value):
+        return _money(value or 0, currency_symbol)
+
+    printer.set(align='center', font='a', bold=True, height=2, width=1)
+    company_name = _first_non_empty(payload.get('company_name'), 'Odoo POS')
+    printer.text(company_name + '\n')
+    printer.set(align='center', font='a', bold=True, height=2, width=2)
+    printer.text('DAILY SALES\n')
+    printer.set(align='left', font='a', bold=False, height=1, width=1)
+
+    session_name = _first_non_empty(payload.get('session_name'))
+    config_name = _first_non_empty(payload.get('config_name'))
+    if session_name:
+        printer.text(f'Session : {session_name}\n')
+    elif config_name:
+        printer.text(f'POS     : {config_name}\n')
+
+    printed_at = _first_non_empty(payload.get('printed_at'))
+    if printed_at:
+        printer.text(f'Printed : {printed_at[:19].replace("T", " ")}\n')
+    printer.text(f'Orders  : {payload.get("order_count", 0)}\n')
+    printer.text(f'Total   : {money(payload.get("total_paid", 0))}\n')
+    printer.text('-' * 42 + '\n')
+
+    categories = payload.get('categories') or []
+    if categories:
+        printer.set(align='left', font='a', bold=True, height=1, width=1)
+        printer.text('BY CATEGORY\n')
+        printer.set(align='left', font='a', bold=False, height=1, width=1)
+        for item in categories:
+            left = f'{item.get("name", "Category")} x{_display_qty(item.get("qty", 0))}'
+            for line in _wrap_left_with_right(left, money(item.get('total', 0)), width=42):
+                printer.text(line + '\n')
+        printer.text('-' * 42 + '\n')
+
+    products = payload.get('products') or []
+    if products:
+        printer.set(align='left', font='a', bold=True, height=1, width=1)
+        printer.text('BY PRODUCT\n')
+        printer.set(align='left', font='a', bold=False, height=1, width=1)
+        current_category = None
+        for item in products:
+            category_name = _first_non_empty(item.get('category_name'))
+            if category_name and category_name != current_category:
+                current_category = category_name
+                printer.text(f'[{category_name}]\n')
+            left = f'{item.get("product_name", "Product")} x{_display_qty(item.get("qty", 0))}'
+            for line in _wrap_left_with_right(left, money(item.get('line_total', 0)), width=42):
+                printer.text(line + '\n')
+        printer.text('-' * 42 + '\n')
+
+    payments = payload.get('payments') or []
+    if payments:
+        printer.set(align='left', font='a', bold=True, height=1, width=1)
+        printer.text('PAYMENTS\n')
+        printer.set(align='left', font='a', bold=False, height=1, width=1)
+        for payment in payments:
+            label = _first_non_empty(payment.get('name'), payment.get('journal_name'), 'Payment')
+            amount = payment.get('total') if payment.get('total') is not None else payment.get('amount')
+            for line in _wrap_left_with_right(label, money(amount or 0), width=42):
+                printer.text(line + '\n')
+        printer.text('-' * 42 + '\n')
+
+
 def format_receipt(data: str, printer_type: str, printer) -> None:
     """
     Formats and prints the receipt or kitchen ticket.
@@ -2220,6 +2287,8 @@ def format_receipt(data: str, printer_type: str, printer) -> None:
 
     if printer_type == 'receipt' and is_json and payload.get('type') == 'receipt':
         _render_receipt_template(printer, payload)
+    elif printer_type == 'receipt' and is_json and payload.get('type') == 'daily_sales':
+        _render_daily_sales_report(printer, payload)
     elif printer_type == 'kitchen' and is_json:
         _render_kitchen_template(printer, payload)
     else:
