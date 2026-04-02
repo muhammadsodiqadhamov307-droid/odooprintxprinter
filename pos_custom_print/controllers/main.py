@@ -1,4 +1,3 @@
-import inspect
 import logging
 from collections import defaultdict
 
@@ -9,34 +8,30 @@ _logger = logging.getLogger(__name__)
 
 
 class PosPrintController(http.Controller):
-    def _call_sale_details(self, report_model, session_id=False, config_id=False):
-        method = report_model.get_sale_details
-        params = inspect.signature(method).parameters
-        kwargs = {}
-        if 'date_start' in params:
-            kwargs['date_start'] = False
-        if 'date_stop' in params:
-            kwargs['date_stop'] = False
-        if 'ticket_type' in params:
-            kwargs['ticket_type'] = False
-        if 'user_id' in params:
-            kwargs['user_id'] = False
-        if 'config_ids' in params:
-            kwargs['config_ids'] = [config_id] if config_id else False
-        elif 'configs' in params:
-            kwargs['configs'] = [config_id] if config_id else False
-        if 'session_ids' in params:
-            kwargs['session_ids'] = [session_id] if session_id else False
-        return method(**kwargs)
+    def _order_domain(self, session_id=False, config_id=False):
+        domain = [('state', 'in', ['paid', 'done', 'invoiced'])]
+        if session_id:
+            domain.append(('session_id', '=', session_id))
+        elif config_id:
+            day_start_utc = fields.Datetime.to_string(
+                fields.Datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+            )
+            domain.extend([
+                ('session_id.config_id', '=', config_id),
+                ('date_order', '>=', day_start_utc),
+            ])
+        return domain
 
-    def _normalize_product_id(self, raw_value):
-        if isinstance(raw_value, int):
-            return raw_value
-        if isinstance(raw_value, (list, tuple)) and raw_value:
-            return raw_value[0]
-        if isinstance(raw_value, str) and raw_value.isdigit():
-            return int(raw_value)
-        return False
+    def _resolve_pos_category_name(self, product):
+        if not product:
+            return 'Uncategorized'
+        if hasattr(product, 'pos_categ_id') and product.pos_categ_id:
+            return product.pos_categ_id.display_name
+        if hasattr(product, 'pos_categ_ids') and product.pos_categ_ids:
+            return product.pos_categ_ids[:1].display_name
+        if product.categ_id:
+            return product.categ_id.display_name
+        return 'Uncategorized'
 
     @http.route(
         '/pos/daily_sales_report',
@@ -52,9 +47,6 @@ class PosPrintController(http.Controller):
             session_id = int(session_id) if session_id else False
             config_id = int(config_id) if config_id else False
 
-            report_model = request.env['report.point_of_sale.report_saledetails'].sudo()
-            details = self._call_sale_details(report_model, session_id=session_id, config_id=config_id) or {}
-
             session = request.env['pos.session'].sudo().browse(session_id) if session_id else request.env['pos.session']
             config = session.config_id if session_id and session.exists() else (
                 request.env['pos.config'].sudo().browse(config_id) if config_id else request.env['pos.config']
@@ -62,86 +54,81 @@ class PosPrintController(http.Controller):
             company = (session.company_id if session_id and session.exists() else config.company_id) or request.env.company
             currency = company.currency_id
 
+            order_domain = self._order_domain(session_id=session_id, config_id=config_id)
+            orders = request.env['pos.order'].sudo().search(order_domain)
+            order_count = len(orders)
+
+            category_buckets = defaultdict(lambda: {
+                'name': 'Uncategorized',
+                'qty': 0.0,
+                'total': 0.0,
+                'products': defaultdict(lambda: {'product_name': 'Product', 'qty': 0.0, 'line_total': 0.0}),
+            })
+            total_paid = 0.0
+            payment_buckets = defaultdict(float)
+
+            for order in orders:
+                total_paid += float(order.amount_total or 0.0)
+                for payment in order.payment_ids:
+                    label = payment.payment_method_id.name or 'Payment'
+                    payment_buckets[label] += float(payment.amount or 0.0)
+                for line in order.lines:
+                    product = line.product_id
+                    category_name = self._resolve_pos_category_name(product)
+                    bucket = category_buckets[category_name]
+                    bucket['name'] = category_name
+                    qty = float(line.qty or 0.0)
+                    line_total = float(getattr(line, 'price_subtotal_incl', line.price_subtotal or 0.0) or 0.0)
+                    product_name = product.display_name if product else (line.full_product_name or line.name or 'Product')
+                    bucket['qty'] += qty
+                    bucket['total'] += line_total
+                    product_bucket = bucket['products'][product_name]
+                    product_bucket['product_name'] = product_name
+                    product_bucket['qty'] += qty
+                    product_bucket['line_total'] += line_total
+
+            categories = []
             products = []
-            product_ids = []
-            for line in details.get('products', []) or []:
-                product_id = self._normalize_product_id(line.get('product_id'))
-                if product_id:
-                    product_ids.append(product_id)
-            products_by_id = {
-                product.id: product
-                for product in request.env['product.product'].sudo().browse(product_ids).exists()
-            }
-
-            category_totals = defaultdict(lambda: {'name': 'Uncategorized', 'qty': 0.0, 'total': 0.0})
-            for line in details.get('products', []) or []:
-                qty = float(line.get('quantity') or line.get('qty') or 0.0)
-                price_unit = float(line.get('price_unit') or line.get('price') or 0.0)
-                discount = float(line.get('discount') or 0.0)
-                line_total = qty * price_unit * (1 - (discount / 100.0))
-                product_id = self._normalize_product_id(line.get('product_id'))
-                product = products_by_id.get(product_id)
-                category_name = (
-                    line.get('category_name')
-                    or line.get('categ_name')
-                    or (product.categ_id.display_name if product and product.categ_id else '')
-                    or 'Uncategorized'
-                )
-                product_name = (
-                    line.get('product_name')
-                    or line.get('name')
-                    or (product.display_name if product else '')
-                    or 'Product'
-                )
-                products.append({
-                    'category_name': category_name,
-                    'product_name': product_name,
-                    'qty': qty,
-                    'line_total': round(line_total, currency.decimal_places or 2),
-                })
-                category_totals[category_name]['name'] = category_name
-                category_totals[category_name]['qty'] += qty
-                category_totals[category_name]['total'] += line_total
-
-            categories = sorted(
-                (
-                    {
-                        'name': value['name'],
-                        'qty': value['qty'],
-                        'total': round(value['total'], currency.decimal_places or 2),
+            for category_name in sorted(category_buckets.keys(), key=lambda value: value.lower()):
+                bucket = category_buckets[category_name]
+                category_products = []
+                for product_name in sorted(bucket['products'].keys(), key=lambda value: value.lower()):
+                    product_bucket = bucket['products'][product_name]
+                    product_line = {
+                        'product_name': product_bucket['product_name'],
+                        'qty': product_bucket['qty'],
+                        'line_total': round(product_bucket['line_total'], currency.decimal_places or 2),
                     }
-                    for value in category_totals.values()
-                ),
-                key=lambda item: item['name'].lower(),
-            )
-            products.sort(key=lambda item: (item['category_name'].lower(), item['product_name'].lower()))
-
-            order_domain = [('state', 'in', ['paid', 'done', 'invoiced'])]
-            if session_id:
-                order_domain.append(('session_id', '=', session_id))
-            elif config_id:
-                today_start = fields.Datetime.to_string(fields.Datetime.now().replace(hour=0, minute=0, second=0, microsecond=0))
-                order_domain.extend([
-                    ('session_id.config_id', '=', config_id),
-                    ('date_order', '>=', today_start),
-                ])
-            order_count = request.env['pos.order'].sudo().search_count(order_domain)
+                    category_products.append(product_line)
+                    products.append({
+                        'category_name': category_name,
+                        **product_line,
+                    })
+                categories.append({
+                    'name': bucket['name'],
+                    'qty': bucket['qty'],
+                    'total': round(bucket['total'], currency.decimal_places or 2),
+                    'products': category_products,
+                })
 
             data = {
                 'type': 'daily_sales',
                 'printer_name': 'Receipt',
-                'company_name': details.get('company_name') or company.display_name,
+                'company_name': company.display_name,
                 'currency_symbol': currency.symbol or '',
                 'currency_precision': currency.decimal_places or 2,
                 'printed_at': fields.Datetime.now().isoformat(),
                 'session_name': session.name if session_id and session.exists() else '',
                 'config_name': config.display_name if config and config.exists() else '',
                 'order_count': order_count,
-                'total_paid': float(details.get('total_paid') or 0.0),
+                'total_paid': round(total_paid, currency.decimal_places or 2),
                 'products': products,
                 'categories': categories,
-                'payments': details.get('payments') or [],
-                'taxes': details.get('taxes') or [],
+                'payments': [
+                    {'name': name, 'amount': round(amount, currency.decimal_places or 2)}
+                    for name, amount in sorted(payment_buckets.items(), key=lambda item: item[0].lower())
+                ],
+                'taxes': [],
             }
             return {'success': True, 'data': data}
         except Exception as e:

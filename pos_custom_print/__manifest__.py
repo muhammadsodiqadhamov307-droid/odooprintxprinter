@@ -1,6 +1,6 @@
 {
     'name': 'PoS Custom Thermal Print',
-    'version': '19.0.2.17.0',
+    'version': '19.0.2.18.0',
     'category': 'Point of Sale',
     'summary': 'Routes PoS print jobs to a local Xprinter XP-80 via a polling agent',
     'author': 'Your Company',

@@ -965,6 +965,30 @@ def _wrap_left_with_column(left, right, column=24, width=42, gap=2):
     return lines
 
 
+def _wrap_three_columns(left, middle, right, width=42, middle_width=6, right_width=12, indent=0):
+    left_text = str(left or '').strip()
+    middle_text = str(middle or '').strip()
+    right_text = str(right or '').strip()
+    width = max(20, int(width))
+    middle_width = max(3, int(middle_width))
+    right_width = max(6, int(right_width))
+    indent = max(0, int(indent))
+    available_left = max(8, width - indent - middle_width - right_width - 2)
+    wrapped_left = _wrap_words(left_text, available_left)
+    if not wrapped_left:
+        wrapped_left = ['']
+    lines = []
+    prefix = ' ' * indent
+    for index, left_line in enumerate(wrapped_left):
+        if index == 0:
+            lines.append(
+                f"{prefix}{left_line:<{available_left}} {middle_text:>{middle_width}} {right_text:>{right_width}}".rstrip()
+            )
+        else:
+            lines.append(f"{prefix}{left_line}")
+    return lines
+
+
 def _resolve_printer_name(payload, default=None):
     try:
         if isinstance(payload, dict):
@@ -2206,50 +2230,41 @@ def _render_daily_sales_report(printer, payload):
     printer.set(align='center', font='a', bold=True, height=2, width=1)
     company_name = _first_non_empty(payload.get('company_name'), 'Odoo POS')
     printer.text(company_name + '\n')
-    printer.set(align='center', font='a', bold=True, height=2, width=2)
-    printer.text('DAILY SALES\n')
+    printer.set(align='left', font='a', bold=True, height=1, width=1)
+    printer.text('Sales\n')
     printer.set(align='left', font='a', bold=False, height=1, width=1)
-
-    session_name = _first_non_empty(payload.get('session_name'))
-    config_name = _first_non_empty(payload.get('config_name'))
-    if session_name:
-        printer.text(f'Session : {session_name}\n')
-    elif config_name:
-        printer.text(f'POS     : {config_name}\n')
-
-    printed_at = _first_non_empty(payload.get('printed_at'))
-    if printed_at:
-        printer.text(f'Printed : {printed_at[:19].replace("T", " ")}\n')
-    printer.text(f'Orders  : {payload.get("order_count", 0)}\n')
-    printer.text(f'Total   : {money(payload.get("total_paid", 0))}\n')
     printer.text('-' * 42 + '\n')
 
     categories = payload.get('categories') or []
     if categories:
-        printer.set(align='left', font='a', bold=True, height=1, width=1)
-        printer.text('BY CATEGORY\n')
-        printer.set(align='left', font='a', bold=False, height=1, width=1)
         for item in categories:
-            left = f'{item.get("name", "Category")} x{_display_qty(item.get("qty", 0))}'
-            for line in _wrap_left_with_right(left, money(item.get('total', 0)), width=42):
+            printer.set(align='left', font='a', bold=True, height=1, width=1)
+            printer.text(f'{item.get("name", "Category")}\n')
+            printer.set(align='left', font='a', bold=False, height=1, width=1)
+            for product in item.get('products') or []:
+                for line in _wrap_three_columns(
+                    product.get('product_name', 'Product'),
+                    _display_qty(product.get('qty', 0)),
+                    money(product.get('line_total', 0)),
+                    width=42,
+                    middle_width=5,
+                    right_width=12,
+                    indent=2,
+                ):
+                    printer.text(line + '\n')
+            printer.set(align='left', font='a', bold=True, height=1, width=1)
+            for line in _wrap_three_columns(
+                'Total',
+                _display_qty(item.get('qty', 0)),
+                money(item.get('total', 0)),
+                width=42,
+                middle_width=5,
+                right_width=12,
+                indent=0,
+            ):
                 printer.text(line + '\n')
-        printer.text('-' * 42 + '\n')
-
-    products = payload.get('products') or []
-    if products:
-        printer.set(align='left', font='a', bold=True, height=1, width=1)
-        printer.text('BY PRODUCT\n')
-        printer.set(align='left', font='a', bold=False, height=1, width=1)
-        current_category = None
-        for item in products:
-            category_name = _first_non_empty(item.get('category_name'))
-            if category_name and category_name != current_category:
-                current_category = category_name
-                printer.text(f'[{category_name}]\n')
-            left = f'{item.get("product_name", "Product")} x{_display_qty(item.get("qty", 0))}'
-            for line in _wrap_left_with_right(left, money(item.get('line_total', 0)), width=42):
-                printer.text(line + '\n')
-        printer.text('-' * 42 + '\n')
+            printer.set(align='left', font='a', bold=False, height=1, width=1)
+            printer.text('-' * 42 + '\n')
 
     payments = payload.get('payments') or []
     if payments:
@@ -2262,6 +2277,10 @@ def _render_daily_sales_report(printer, payload):
             for line in _wrap_left_with_right(label, money(amount or 0), width=42):
                 printer.text(line + '\n')
         printer.text('-' * 42 + '\n')
+
+    printer.set(align='left', font='a', bold=True, height=1, width=1)
+    for line in _wrap_left_with_right('Grand Total', money(payload.get('total_paid', 0)), width=42):
+        printer.text(line + '\n')
 
 
 def format_receipt(data: str, printer_type: str, printer) -> None:
